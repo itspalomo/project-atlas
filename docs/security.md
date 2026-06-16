@@ -3,6 +3,7 @@
 ## Network
 
 - PostgreSQL binds to `127.0.0.1`.
+- Honcho API binds to `127.0.0.1` on the host and stays on the private Compose network internally.
 - Hermes binds to `127.0.0.1`.
 - Admin access uses Tailscale SSH.
 - WhatsApp Cloud API requires a public HTTPS webhook, but only the webhook path should be exposed.
@@ -10,6 +11,7 @@
 ## WhatsApp Identity
 
 - Phone numbers are normalized to digits and stored in `identity_channels`.
+- Authorized identities are defined in `ecosystem/atlas.yaml` during install.
 - Unknown senders are rejected and logged.
 - Meta webhook signatures are verified with `WHATSAPP_APP_SECRET`.
 - The verification token is random and stored in `.env`.

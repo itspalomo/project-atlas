@@ -9,6 +9,8 @@ if [[ ! -f .env ]]; then
   chmod 600 .env
 fi
 
+scripts/init-ecosystem.sh
+
 if [[ "$(uname -s)" == "Linux" ]]; then
   scripts/install-system-deps.sh
   scripts/install-tailscale.sh
@@ -18,10 +20,19 @@ if grep -Eq 'change-me-generate-with-openssl|POSTGRES_PASSWORD=$|ATLAS_BRIDGE_AP
   scripts/rotate-local-secrets.sh
 fi
 
-docker compose up -d --build postgres
+scripts/install-honcho.sh --prepare
+
+if ! scripts/install-honcho.sh --check-env; then
+  echo "Honcho needs an LLM provider before the one-command install can complete."
+  echo "Set LLM_OPENAI_API_KEY, LLM_ANTHROPIC_API_KEY, or LLM_GEMINI_API_KEY in .env and rerun scripts/install.sh."
+  exit 1
+fi
+
+docker compose up -d --build postgres honcho-api honcho-deriver
 docker compose build atlas-api
 docker compose run --rm atlas-api node dist/db/migrate.js
 docker compose run --rm atlas-api node dist/db/seed.js
+scripts/init-hermes-profiles.sh
 docker compose up -d --build atlas-api
 
 cat <<'MSG'
@@ -32,5 +43,4 @@ Next steps:
 2. Configure the Meta webhook URL to https://<your-domain>/webhooks/whatsapp.
 3. Start a public webhook tunnel or reverse proxy for only /webhooks/whatsapp.
 4. Start Hermes with: docker compose --profile runtime up -d --build hermes
-5. Optionally bootstrap Honcho with: scripts/install-honcho.sh
 MSG

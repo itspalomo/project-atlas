@@ -1,6 +1,6 @@
 # Architecture
 
-Project Atlas separates the ecosystem from the agent runtime.
+Project Atlas separates the ecosystem from the agent runtime. The ecosystem is installer-defined through `ecosystem/atlas.yaml`; there are no hard-coded household members or built-in personal agents.
 
 Atlas owns:
 
@@ -26,25 +26,26 @@ Honcho owns:
 
 ```mermaid
 flowchart TD
-  WA["WhatsApp Cloud API"] -->|"signed webhook"| API["Atlas API"]
+  CFG["ecosystem/atlas.yaml"] --> API["Atlas API"]
+  CFG --> PROF["Generated Hermes profiles"]
+  WA["WhatsApp Cloud API"] -->|"signed webhook"| API
   IOS["iOS Bridge"] -->|"private bridge API"| API
-  API --> PG["PostgreSQL"]
-  API --> HJ["Hermes: atlas-jose"]
-  API --> HW["Hermes: atlas-wife"]
-  API --> HF["Hermes: atlas-family"]
-  HJ --> MJ["Honcho workspace: jose"]
-  HW --> MW["Honcho workspace: wife"]
-  HF --> MF["Honcho workspace: family"]
+  API --> PG["Atlas PostgreSQL"]
+  API --> H["Hermes runtime"]
+  H --> HC["Self-hosted Honcho API"]
+  HC --> HPG["Honcho PostgreSQL + pgvector"]
+  HC --> HR["Honcho Redis"]
+  PROF --> H
   Admin["Admin over Tailscale"] --> API
-  Admin --> PG
-  Admin --> HJ
+  Admin --> H
+  Admin --> HC
 ```
 
 ## Routing Rules
 
-- Jose's allowlisted WhatsApp number routes to `atlas-jose`.
-- Wife's allowlisted WhatsApp number routes to `atlas-wife`.
-- A family-prefixed message such as `family: plan dinner` routes to `atlas-family` only if the sender is a member of the family agent.
+- Each allowlisted WhatsApp number maps to the default agent defined for that identity.
+- Shared-agent aliases such as `family:` or `/household` are defined in `ecosystem/atlas.yaml`.
+- A shared-agent alias only routes if the sender is a member of that agent.
 - Unknown WhatsApp senders are rejected and audited.
 
 ## Structured Data Versus Memory

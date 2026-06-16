@@ -1,9 +1,11 @@
 # Hermes Profile Assets
 
-The `ecosystem/atlas-*` directories hold Atlas-owned identity prompts. `scripts/init-hermes-profiles.sh` copies these into the Hermes data volume and creates the matching Hermes profiles:
+Hermes profile assets are generated from the local `ecosystem/atlas.yaml` file.
 
-- `atlas-jose`
-- `atlas-wife`
-- `atlas-family`
+Run:
 
-Atlas keeps profile names, Honcho workspace IDs, and channel allowlists in PostgreSQL. Hermes remains the runtime and can be replaced later without changing Atlas identity records.
+```bash
+scripts/init-hermes-profiles.sh
+```
+
+The generated files are written under `data/hermes/profiles/` and are intentionally not committed. Atlas keeps profile names, Honcho workspace IDs, and channel allowlists in PostgreSQL. Hermes remains the runtime and can be replaced later without changing Atlas identity records.

@@ -2,11 +2,7 @@
 
 Hermes is the initial Atlas runtime. Atlas keeps runtime-specific configuration thin so Hermes can be replaced later.
 
-Profile names:
-
-- `atlas-jose`
-- `atlas-wife`
-- `atlas-family`
+Profile names come from `ecosystem/atlas.yaml`.
 
 Run:
 

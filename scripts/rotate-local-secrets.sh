@@ -19,6 +19,7 @@ replace_if_placeholder() {
 replace_if_placeholder "POSTGRES_PASSWORD"
 replace_if_placeholder "WHATSAPP_VERIFY_TOKEN"
 replace_if_placeholder "ATLAS_BRIDGE_API_KEY"
+replace_if_placeholder "HONCHO_AUTH_JWT_SECRET"
 
 POSTGRES_PASSWORD_VALUE="$(grep '^POSTGRES_PASSWORD=' .env | cut -d= -f2-)"
 if grep -q '^DATABASE_URL=postgres://atlas:change-me-generate-with-openssl@postgres:5432/atlas' .env; then

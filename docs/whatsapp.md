@@ -24,19 +24,25 @@ WHATSAPP_VERIFY_TOKEN=<random-token>
 
 ## Allowlisting
 
-Set these before running `scripts/install.sh` or rerun `scripts/atlasctl seed` after changing them:
+Allowed senders are defined in `ecosystem/atlas.yaml`:
 
-```bash
-ATLAS_JOSE_WHATSAPP_E164=+15551234567
-ATLAS_WIFE_WHATSAPP_E164=+15557654321
+```yaml
+users:
+  - id: parent-one
+    displayName: Parent One
+    identities:
+      - channel: whatsapp
+        externalId: "+15551234567"
+        defaultAgent: household
 ```
 
-The seed script creates `identity_channels` rows:
+Run this after editing the file:
 
-- Jose number -> `atlas-jose`
-- Wife number -> `atlas-wife`
+```bash
+scripts/atlasctl seed
+```
 
-Family routing is command-based in v1:
+Shared-agent routing is command-based in v1 and configured per agent:
 
 ```text
 family: what should we cook this week?

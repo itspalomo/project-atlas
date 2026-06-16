@@ -1,0 +1,55 @@
+version: 1
+
+project:
+  id: household
+  name: Household Atlas
+
+users:
+  - id: user-one
+    displayName: User One
+    identities:
+      - channel: whatsapp
+        externalId: "+15551234567"
+        defaultAgent: household
+
+  - id: user-two
+    displayName: User Two
+    identities:
+      - channel: whatsapp
+        externalId: "+15557654321"
+        defaultAgent: household
+
+agents:
+  - id: household
+    displayName: Household Atlas
+    type: shared
+    hermesProfile: household
+    honchoWorkspace: household
+    owners:
+      - user-one
+    members:
+      - user-one
+      - user-two
+    routing:
+      defaultFor:
+        - user-one
+        - user-two
+      aliases:
+        - "family:"
+        - "/family"
+        - "household:"
+        - "/household"
+    skills:
+      - household
+      - calendar
+      - reminders
+      - planning
+      - health
+    prompt: |
+      # Household Atlas
+
+      You are the shared household agent for this Project Atlas installation.
+
+      You coordinate only information intentionally shared with this household workspace.
+      You do not assume access to private memories.
+      Ask for approval before creating reminders, changing calendars, changing goals, or making household commitments.

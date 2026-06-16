@@ -6,6 +6,7 @@ Target host:
 - Docker Compose.
 - Tailscale for private administration.
 - Optional Cloudflare Tunnel or reverse proxy for the WhatsApp webhook.
+- A supported Honcho LLM provider key in `.env`.
 
 ## One-Command Bootstrap
 
@@ -23,11 +24,42 @@ The installer:
 
 1. Installs Docker on Linux when missing.
 2. Installs Tailscale on Linux when missing.
-3. Rotates placeholder local secrets in `.env`.
-4. Starts PostgreSQL.
-5. Runs migrations.
-6. Seeds the initial users, agents, and WhatsApp allowlist.
-7. Starts Atlas API.
+3. Creates `ecosystem/atlas.yaml` if missing.
+4. Rotates placeholder local secrets in `.env`.
+5. Clones upstream Honcho into `vendor/honcho`.
+6. Starts Atlas PostgreSQL and self-hosted Honcho.
+7. Runs migrations.
+8. Seeds users, agents, channel allowlists, and membership from `ecosystem/atlas.yaml`.
+9. Generates Hermes profile assets and Honcho configs.
+10. Starts Atlas API.
+
+## Ecosystem Config
+
+The local ecosystem file controls identity and routing:
+
+```yaml
+users:
+  - id: parent-one
+    displayName: Parent One
+    identities:
+      - channel: whatsapp
+        externalId: "+15551234567"
+        defaultAgent: household
+
+agents:
+  - id: household
+    displayName: Household Atlas
+    type: shared
+    honchoWorkspace: household
+    members:
+      - parent-one
+    routing:
+      defaultFor:
+        - parent-one
+      aliases:
+        - "family:"
+        - "/family"
+```
 
 ## Runtime
 
@@ -39,6 +71,17 @@ docker compose --profile runtime up -d --build hermes
 ```
 
 Set `ATLAS_RUNTIME_MODE=hermes` after the Hermes profile endpoints are reachable.
+
+## Honcho
+
+Honcho is part of the Atlas Compose stack:
+
+- `honcho-api`
+- `honcho-deriver`
+- `honcho-postgres`
+- `honcho-redis`
+
+Atlas reaches Honcho at `http://honcho-api:8000` inside Compose. The host can reach it at `http://127.0.0.1:8000` by default. Honcho source is cloned to `vendor/honcho` because upstream builds from source rather than publishing a stable Docker Hub image.
 
 ## WhatsApp Public Edge
 
@@ -61,6 +104,6 @@ Configure the tunnel route to forward `https://<domain>/webhooks/whatsapp` to `h
 Back up:
 
 - PostgreSQL volume `postgres-data`.
+- Honcho volumes `honcho-postgres-data` and `honcho-redis-data`.
 - Hermes profile/data volume `hermes-data`.
-- Honcho's database and object storage, depending on the chosen Honcho deployment.
 - `.env` secrets in a password manager or encrypted backup.

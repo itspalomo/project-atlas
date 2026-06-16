@@ -31,13 +31,108 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      honcho-api:
+        condition: service_healthy
     ports:
       - "${ATLAS_API_BIND:-127.0.0.1}:${ATLAS_API_PORT:-3000}:3000"
+    volumes:
+      - ./ecosystem:/app/ecosystem:ro
     security_opt:
       - no-new-privileges:true
     read_only: true
     tmpfs:
       - /tmp
+
+  honcho-api:
+    build:
+      context: ${HONCHO_SOURCE_DIR:-./vendor/honcho}
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    entrypoint: ["sh", "docker/entrypoint.sh"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DB_CONNECTION_URI: postgresql+psycopg://postgres:postgres@honcho-postgres:5432/postgres
+      CACHE_URL: redis://honcho-redis:6379/0?suppress=true
+      CACHE_ENABLED: "true"
+      AUTH_USE_AUTH: ${HONCHO_AUTH_USE_AUTH:-false}
+      AUTH_JWT_SECRET: ${HONCHO_AUTH_JWT_SECRET:-}
+    depends_on:
+      honcho-postgres:
+        condition: service_healthy
+      honcho-redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${HONCHO_HOST_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/app/.venv/bin/python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2).read()"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+
+  honcho-deriver:
+    build:
+      context: ${HONCHO_SOURCE_DIR:-./vendor/honcho}
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    entrypoint: ["/app/.venv/bin/python", "-m", "src.deriver"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DB_CONNECTION_URI: postgresql+psycopg://postgres:postgres@honcho-postgres:5432/postgres
+      CACHE_URL: redis://honcho-redis:6379/0?suppress=true
+      CACHE_ENABLED: "true"
+      AUTH_USE_AUTH: ${HONCHO_AUTH_USE_AUTH:-false}
+      AUTH_JWT_SECRET: ${HONCHO_AUTH_JWT_SECRET:-}
+    depends_on:
+      honcho-api:
+        condition: service_healthy
+      honcho-postgres:
+        condition: service_healthy
+      honcho-redis:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+
+  honcho-postgres:
+    image: pgvector/pgvector:pg15
+    restart: unless-stopped
+    command: ["postgres", "-c", "max_connections=200"]
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - honcho-postgres-data:/var/lib/postgresql/data/
+      - ${HONCHO_SOURCE_DIR:-./vendor/honcho}/database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  honcho-redis:
+    image: redis:8.2
+    restart: unless-stopped
+    volumes:
+      - honcho-redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   hermes:
     image: nousresearch/hermes-agent:latest
@@ -48,12 +143,10 @@ services:
         required: false
     volumes:
       - hermes-data:/opt/data
-      - ./ecosystem/hermes:/opt/atlas/ecosystem:ro
+      - ./data/hermes/profiles:/opt/atlas/profiles:ro
     ports:
       - "127.0.0.1:${HERMES_DASHBOARD_PORT:-9119}:9119"
-      - "127.0.0.1:${HERMES_ATLAS_JOSE_PORT:-8642}:8642"
-      - "127.0.0.1:${HERMES_ATLAS_WIFE_PORT:-8643}:8643"
-      - "127.0.0.1:${HERMES_ATLAS_FAMILY_PORT:-8644}:8644"
+      - "127.0.0.1:${HERMES_GATEWAY_PORT:-8642}:8642"
     security_opt:
       - no-new-privileges:true
     profiles:
@@ -71,3 +164,5 @@ services:
 volumes:
   postgres-data:
   hermes-data:
+  honcho-postgres-data:
+  honcho-redis-data:

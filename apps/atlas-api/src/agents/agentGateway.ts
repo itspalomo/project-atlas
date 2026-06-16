@@ -15,12 +15,6 @@ export type AgentReply = {
   runtime: "stub" | "hermes";
 };
 
-const profileEnvNames: Record<string, keyof AtlasConfig["hermesProfileUrls"]> = {
-  "atlas-jose": "atlasJose",
-  "atlas-wife": "atlasWife",
-  "atlas-family": "atlasFamily"
-};
-
 export async function generateAgentReply(
   pool: Pool,
   config: AtlasConfig,
@@ -33,13 +27,13 @@ export async function generateAgentReply(
     };
   }
 
-  const profileKey = profileEnvNames[input.agentId];
-  const baseUrl = profileKey ? config.hermesProfileUrls[profileKey] : undefined;
+  const agent = await getAgentRuntimeConfig(pool, input.agentId);
+  const endpoint = getHermesEndpoint(config, agent);
 
-  if (!baseUrl) {
+  if (!endpoint) {
     await recordAuditLog(pool, {
       actorUserId: input.userId,
-      action: "runtime.hermes.missing_profile_url",
+      action: "runtime.hermes.missing_endpoint",
       subjectType: "agent",
       subjectId: input.agentId,
       metadata: { channel: input.channel }
@@ -51,7 +45,7 @@ export async function generateAgentReply(
     };
   }
 
-  const response = await fetch(`${baseUrl.replace(/\/$/, "")}/v1/chat/completions`, {
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "content-type": "application/json"
@@ -67,6 +61,8 @@ export async function generateAgentReply(
       metadata: {
         atlas_user_id: input.userId,
         atlas_agent_id: input.agentId,
+        atlas_hermes_profile: agent.hermesProfile,
+        atlas_honcho_workspace: agent.honchoWorkspace,
         atlas_conversation_id: input.conversationId,
         atlas_channel: input.channel
       }
@@ -96,4 +92,68 @@ export async function generateAgentReply(
     runtime: "hermes",
     text: payload.choices?.[0]?.message?.content?.trim() || "Hermes returned an empty response."
   };
+}
+
+type AgentRuntimeConfig = {
+  id: string;
+  hermesProfile: string;
+  honchoWorkspace: string;
+  runtimeUrl?: string;
+};
+
+async function getAgentRuntimeConfig(pool: Pool, agentId: string): Promise<AgentRuntimeConfig> {
+  const result = await pool.query<{
+    id: string;
+    hermes_profile: string;
+    honcho_workspace: string;
+    config: {
+      runtime?: {
+        url?: string;
+      };
+    };
+  }>(
+    `
+      select id, hermes_profile, honcho_workspace, config
+      from agents
+      where id = $1
+      limit 1
+    `,
+    [agentId]
+  );
+
+  const row = result.rows[0];
+  if (!row) {
+    return {
+      id: agentId,
+      hermesProfile: agentId,
+      honchoWorkspace: agentId
+    };
+  }
+
+  return {
+    id: row.id,
+    hermesProfile: row.hermes_profile,
+    honchoWorkspace: row.honcho_workspace,
+    runtimeUrl: row.config.runtime?.url
+  };
+}
+
+function getHermesEndpoint(config: AtlasConfig, agent: AgentRuntimeConfig): string | undefined {
+  const rawEndpoint =
+    agent.runtimeUrl ??
+    config.hermesEndpointTemplate
+      ?.replaceAll("{profile}", encodeURIComponent(agent.hermesProfile))
+      .replaceAll("{agentId}", encodeURIComponent(agent.id));
+
+  if (rawEndpoint) {
+    return rawEndpoint.endsWith("/v1/chat/completions")
+      ? rawEndpoint
+      : `${rawEndpoint.replace(/\/$/, "")}/v1/chat/completions`;
+  }
+
+  if (!config.hermesBaseUrl) {
+    return undefined;
+  }
+
+  return `${config.hermesBaseUrl.replace(/\/$/, "")}/v1/chat/completions`;
 }

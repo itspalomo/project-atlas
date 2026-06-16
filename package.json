@@ -14,6 +14,7 @@
     "typecheck": "npm run typecheck --workspaces",
     "test": "npm run test --workspaces",
     "migrate": "npm run migrate --workspace @project-atlas/atlas-api",
-    "seed": "npm run seed --workspace @project-atlas/atlas-api"
+    "seed": "npm run seed --workspace @project-atlas/atlas-api",
+    "generate:hermes-profiles": "npm run generate:hermes-profiles --workspace @project-atlas/atlas-api"
   }
 }

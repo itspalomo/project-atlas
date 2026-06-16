@@ -7,6 +7,7 @@ const envSchema = z.object({
   ATLAS_API_PORT: z.coerce.number().int().positive().default(3000),
   ATLAS_PUBLIC_BASE_URL: z.string().url().optional(),
   DATABASE_URL: z.string().min(1),
+  ATLAS_ECOSYSTEM_CONFIG: z.string().default("ecosystem/atlas.yaml"),
   WHATSAPP_GRAPH_API_VERSION: z.string().default("v24.0"),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
@@ -17,9 +18,8 @@ const envSchema = z.object({
     .default("false")
     .transform((value) => value === "true"),
   ATLAS_RUNTIME_MODE: z.enum(["stub", "hermes"]).default("stub"),
-  HERMES_ATLAS_JOSE_URL: z.string().url().optional(),
-  HERMES_ATLAS_WIFE_URL: z.string().url().optional(),
-  HERMES_ATLAS_FAMILY_URL: z.string().url().optional(),
+  HERMES_BASE_URL: z.string().url().optional(),
+  HERMES_ENDPOINT_TEMPLATE: z.string().url().optional(),
   HERMES_MODEL: z.string().default("hermes"),
   HONCHO_BASE_URL: z.string().url().optional(),
   HONCHO_API_KEY: z.string().optional(),
@@ -33,6 +33,7 @@ export type AtlasConfig = {
   port: number;
   publicBaseUrl?: string;
   databaseUrl: string;
+  ecosystemConfigPath: string;
   whatsapp: {
     graphApiVersion: string;
     phoneNumberId?: string;
@@ -42,11 +43,8 @@ export type AtlasConfig = {
     sendUnauthorizedReply: boolean;
   };
   runtimeMode: "stub" | "hermes";
-  hermesProfileUrls: {
-    atlasJose?: string;
-    atlasWife?: string;
-    atlasFamily?: string;
-  };
+  hermesBaseUrl?: string;
+  hermesEndpointTemplate?: string;
   hermesModel: string;
   honcho?: {
     baseUrl?: string;
@@ -65,6 +63,7 @@ export function loadConfig(env = process.env): AtlasConfig {
     port: parsed.ATLAS_API_PORT,
     publicBaseUrl: parsed.ATLAS_PUBLIC_BASE_URL,
     databaseUrl: parsed.DATABASE_URL,
+    ecosystemConfigPath: parsed.ATLAS_ECOSYSTEM_CONFIG,
     whatsapp: {
       graphApiVersion: parsed.WHATSAPP_GRAPH_API_VERSION,
       phoneNumberId: parsed.WHATSAPP_PHONE_NUMBER_ID,
@@ -74,11 +73,8 @@ export function loadConfig(env = process.env): AtlasConfig {
       sendUnauthorizedReply: parsed.WHATSAPP_SEND_UNAUTHORIZED_REPLY
     },
     runtimeMode: parsed.ATLAS_RUNTIME_MODE,
-    hermesProfileUrls: {
-      atlasJose: parsed.HERMES_ATLAS_JOSE_URL,
-      atlasWife: parsed.HERMES_ATLAS_WIFE_URL,
-      atlasFamily: parsed.HERMES_ATLAS_FAMILY_URL
-    },
+    hermesBaseUrl: parsed.HERMES_BASE_URL,
+    hermesEndpointTemplate: parsed.HERMES_ENDPOINT_TEMPLATE,
     hermesModel: parsed.HERMES_MODEL,
     honcho: {
       baseUrl: parsed.HONCHO_BASE_URL,

@@ -2,20 +2,17 @@
 
 Project Atlas is a private personal-agent ecosystem for individuals and families. Atlas owns identity, permissions, structured facts, approvals, integrations, and memory boundaries. Hermes is the initial runtime, but the runtime is treated as replaceable.
 
-This baseline starts with three persistent identities:
-
-- `atlas-jose`: Jose's personal agent, private `jose` Honcho workspace.
-- `atlas-wife`: Wife's personal agent, private `wife` Honcho workspace.
-- `atlas-family`: shared household agent, explicit-share-only `family` Honcho workspace.
+Atlas is self-serve. A local `ecosystem/atlas.yaml` file defines the users, their WhatsApp identities, shared or personal agents, routing aliases, Hermes profiles, and Honcho memory workspaces for each installation. The repository does not ship with named built-in people.
 
 ## What Is Included
 
-- Docker Compose for Atlas API, PostgreSQL, Hermes, and optional Cloudflare webhook tunnel.
+- Docker Compose for Atlas API, PostgreSQL, self-hosted Honcho, Hermes, and optional Cloudflare webhook tunnel.
 - PostgreSQL schema for identities, agents, allowlisted channels, approvals, audit logs, health summaries, calendar availability, reminders, and goals.
 - WhatsApp Business Cloud API webhook scaffold with signature verification and sender allowlisting.
 - iOS bridge API scaffold for privacy-preserving HealthKit, calendar availability, semantic location, reminders, and approvals.
-- Hermes profile assets and setup script for the three Atlas agents.
-- Honcho self-hosting bootstrap script and memory isolation docs.
+- Self-serve ecosystem config generator.
+- Hermes profile and Honcho config generation from the local ecosystem config.
+- Honcho self-hosting bootstrap wired into the default installer.
 - VPS installer script for Ubuntu 24.04 style hosts.
 
 ## Quick Start
@@ -25,6 +22,8 @@ cp .env.example .env
 $EDITOR .env
 scripts/install.sh
 ```
+
+The installer creates `ecosystem/atlas.yaml` if it does not exist. Edit that file to define the number of users, allowed WhatsApp identities, and shared agents for the installation.
 
 For local development:
 
@@ -41,6 +40,7 @@ npm run dev --workspace @project-atlas/atlas-api
 ## Security Defaults
 
 - Hermes dashboard/API ports bind to localhost by default.
+- Honcho API binds to localhost on the host and is reachable inside Compose as `http://honcho-api:8000`.
 - WhatsApp webhook requests require Meta signature verification when `WHATSAPP_APP_SECRET` is set.
 - Only phone numbers seeded into `identity_channels` can route messages to agents.
 - iOS bridge writes structured summaries and availability windows, not raw health samples, raw calendar event details, or raw location history.

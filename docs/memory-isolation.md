@@ -1,17 +1,16 @@
 # Memory Isolation
 
-Atlas starts with one Honcho deployment and three workspaces:
+Atlas starts one self-hosted Honcho deployment and creates memory workspace names from `ecosystem/atlas.yaml`.
 
 | Workspace | Users | Agent | Rule |
 | --- | --- | --- | --- |
-| `jose` | Jose, Atlas Jose | `atlas-jose` | Private to Jose |
-| `wife` | Wife, Atlas Wife | `atlas-wife` | Private to Wife |
-| `family` | Jose, Wife, Atlas Family | `atlas-family` | Explicit shared memory only |
+| `household` | configured members | configured shared agent | Shared only for listed members |
+| `user-one` | configured user | optional personal agent | Private to that user |
 
 ## Rules
 
-- Private memories are never copied to another private workspace automatically.
-- Family memory receives only intentionally shared facts or conversations.
+- Private memories are never copied to another workspace automatically.
+- Shared memory receives only intentionally shared facts or conversations.
 - Structured facts live in PostgreSQL first, not memory.
 - Memory grants are recorded in `shared_memory_grants`.
 - Revocation should stop future access; historical memory deletion depends on Honcho retention behavior and must be handled explicitly.
@@ -20,8 +19,8 @@ Atlas starts with one Honcho deployment and three workspaces:
 
 Private:
 
-- `Jose wants to learn ROS2.`
-- `Wife prefers evening workouts.`
+- `A user wants to learn ROS2.`
+- `A user prefers evening workouts.`
 
 Shared:
 

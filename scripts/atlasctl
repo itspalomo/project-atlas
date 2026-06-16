@@ -20,7 +20,17 @@ case "${1:-}" in
   seed)
     docker compose run --rm atlas-api node dist/db/seed.js
     ;;
+  init)
+    scripts/init-ecosystem.sh
+    ;;
+  honcho)
+    scripts/install-honcho.sh
+    ;;
+  profiles)
+    scripts/init-hermes-profiles.sh
+    ;;
   runtime)
+    scripts/init-hermes-profiles.sh
     docker compose --profile runtime up -d --build hermes
     ;;
   webhook)
@@ -36,6 +46,9 @@ Commands:
   logs      Tail logs
   migrate   Run Postgres migrations
   seed      Seed users, agents, and WhatsApp allowlist
+  init      Create local ecosystem/atlas.yaml
+  honcho    Clone and start self-hosted Honcho
+  profiles  Generate Hermes SOUL.md and honcho.json files
   runtime   Start Hermes runtime profile
   webhook   Start optional Cloudflare webhook tunnel
 USAGE

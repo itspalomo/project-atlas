@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+ecosystem/atlas.yaml
 
 node_modules/
 dist/
