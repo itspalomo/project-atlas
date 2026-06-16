@@ -5,7 +5,7 @@ Target host:
 - Ubuntu 24.04 VPS on Hostinger, DigitalOcean, or similar.
 - Docker Compose.
 - Tailscale for private administration.
-- Optional Cloudflare Tunnel or reverse proxy for the WhatsApp webhook.
+- Tailscale Funnel for the public WhatsApp webhook.
 - A supported Honcho LLM provider key in `.env`.
 
 ## One-Command Bootstrap
@@ -85,19 +85,19 @@ Atlas reaches Honcho at `http://honcho-api:8000` inside Compose. The host can re
 
 ## WhatsApp Public Edge
 
-WhatsApp Cloud API requires a public HTTPS webhook. Keep the public edge narrow:
+WhatsApp Cloud API requires a public HTTPS webhook. Atlas publishes that webhook through Tailscale Funnel:
 
-- Public: `GET /webhooks/whatsapp`, `POST /webhooks/whatsapp`.
+- Public through Funnel: `GET /webhooks/whatsapp`, `POST /webhooks/whatsapp`.
 - Private over Tailscale: everything else.
 - Never expose Hermes or PostgreSQL publicly.
 
-With Cloudflare Tunnel:
+Before running the command, enable Funnel in the Tailscale admin console or tailnet policy. Then run:
 
 ```bash
-docker compose --profile public-webhook up -d cloudflared
+scripts/atlasctl webhook
 ```
 
-Configure the tunnel route to forward `https://<domain>/webhooks/whatsapp` to `http://atlas-api:3000/webhooks/whatsapp`.
+The script proxies `https://<node>.<tailnet>.ts.net/webhooks/whatsapp` to the local Atlas API on `127.0.0.1:${ATLAS_API_PORT:-3000}`. Use the printed URL as the Meta WhatsApp webhook callback URL.
 
 ## Backups
 

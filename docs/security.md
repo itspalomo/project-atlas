@@ -6,7 +6,7 @@
 - Honcho API binds to `127.0.0.1` on the host and stays on the private Compose network internally.
 - Hermes binds to `127.0.0.1`.
 - Admin access uses Tailscale SSH.
-- WhatsApp Cloud API requires a public HTTPS webhook, but only the webhook path should be exposed.
+- WhatsApp Cloud API requires a public HTTPS webhook, but only `/webhooks/whatsapp` should be exposed through Tailscale Funnel.
 
 ## WhatsApp Identity
 

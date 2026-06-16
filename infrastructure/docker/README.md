@@ -10,6 +10,5 @@ Default services:
 Profiles:
 
 - `runtime`: starts the Hermes runtime container.
-- `public-webhook`: starts Cloudflare Tunnel for the public WhatsApp webhook edge.
 
-The Atlas API should be reachable publicly only for `/webhooks/whatsapp` when using WhatsApp Cloud API. Hermes and PostgreSQL bind to localhost by default and are intended to be administered through Tailscale SSH or a private reverse proxy.
+The Atlas API should be reachable publicly only for `/webhooks/whatsapp` when using WhatsApp Cloud API. That public path is published with Tailscale Funnel from the host, not a Docker sidecar. Hermes, Honcho, and PostgreSQL bind to localhost by default and are intended to be administered through Tailscale SSH.

@@ -34,7 +34,13 @@ case "${1:-}" in
     docker compose --profile runtime up -d --build hermes
     ;;
   webhook)
-    docker compose --profile public-webhook up -d cloudflared
+    scripts/setup-tailscale-funnel.sh
+    ;;
+  webhook-status)
+    tailscale funnel status
+    ;;
+  webhook-off)
+    scripts/setup-tailscale-funnel.sh off
     ;;
   *)
     cat <<'USAGE'
@@ -50,7 +56,11 @@ Commands:
   honcho    Clone and start self-hosted Honcho
   profiles  Generate Hermes SOUL.md and honcho.json files
   runtime   Start Hermes runtime profile
-  webhook   Start optional Cloudflare webhook tunnel
+  webhook   Publish WhatsApp webhook through Tailscale Funnel
+  webhook-status
+            Show Tailscale Funnel status
+  webhook-off
+            Turn off the configured Tailscale Funnel webhook path
 USAGE
     ;;
 esac

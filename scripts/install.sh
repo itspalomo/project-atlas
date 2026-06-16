@@ -40,7 +40,7 @@ Project Atlas base services are running.
 
 Next steps:
 1. Fill WhatsApp Cloud API values in .env.
-2. Configure the Meta webhook URL to https://<your-domain>/webhooks/whatsapp.
-3. Start a public webhook tunnel or reverse proxy for only /webhooks/whatsapp.
+2. Publish the webhook through Tailscale Funnel with: scripts/atlasctl webhook
+3. Use the printed Funnel URL as the Meta webhook callback URL.
 4. Start Hermes with: docker compose --profile runtime up -d --build hermes
 MSG

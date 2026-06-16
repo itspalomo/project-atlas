@@ -152,15 +152,6 @@ services:
     profiles:
       - runtime
 
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TOKEN:-}
-    depends_on:
-      - atlas-api
-    profiles:
-      - public-webhook
-
 volumes:
   postgres-data:
   hermes-data:

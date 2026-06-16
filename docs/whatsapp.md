@@ -4,10 +4,10 @@ Atlas uses WhatsApp Business Cloud API for the production messaging surface.
 
 ## Meta App Settings
 
-Configure the webhook callback URL:
+Configure the webhook callback URL with the Tailscale Funnel URL printed by `scripts/atlasctl webhook`:
 
 ```text
-https://<your-domain>/webhooks/whatsapp
+https://<your-node>.<tailnet>.ts.net/webhooks/whatsapp
 ```
 
 Use `WHATSAPP_VERIFY_TOKEN` from `.env` as the webhook verification token.

@@ -6,7 +6,8 @@ Atlas is self-serve. A local `ecosystem/atlas.yaml` file defines the users, thei
 
 ## What Is Included
 
-- Docker Compose for Atlas API, PostgreSQL, self-hosted Honcho, Hermes, and optional Cloudflare webhook tunnel.
+- Docker Compose for Atlas API, PostgreSQL, self-hosted Honcho, and Hermes.
+- Tailscale Funnel setup for the public WhatsApp webhook edge.
 - PostgreSQL schema for identities, agents, allowlisted channels, approvals, audit logs, health summaries, calendar availability, reminders, and goals.
 - WhatsApp Business Cloud API webhook scaffold with signature verification and sender allowlisting.
 - iOS bridge API scaffold for privacy-preserving HealthKit, calendar availability, semantic location, reminders, and approvals.
