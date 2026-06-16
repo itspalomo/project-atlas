@@ -83,6 +83,14 @@ is_slug() {
   [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]]
 }
 
+slugify() {
+  local value
+  value="$(lowercase "$1")"
+  value="$(printf '%s' "$value" | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')"
+  value="${value%-atlas}"
+  printf '%s' "${value:-household}"
+}
+
 yaml_quote() {
   local value="$1"
   value="${value//\\/\\\\}"
@@ -309,19 +317,21 @@ available_skills=(household planning calendar reminders health training nutritio
 
 section "Welcome"
 printf '%sThis creates your local Atlas ecosystem file:%s %s\n' "$DIM" "$RESET" "$CONFIG_PATH"
-printf '%sAtlas uses this file to decide who can talk over WhatsApp, which agents exist, which Hermes profile each agent uses, and which Honcho memory workspace belongs to each agent.%s\n' "$DIM" "$RESET"
-printf '%sHermes stays the runtime. Atlas does not collect OpenAI or LLM keys here; Hermes/provider auth is handled by the Hermes runtime when you start it.%s\n' "$DIM" "$RESET"
+printf '%sAtlas is the private front door. It checks WhatsApp sender identity, agent membership, routing, approvals, and memory boundaries before a message reaches Hermes.%s\n' "$DIM" "$RESET"
+printf '%sHermes is still the agent runtime. Hermes/provider auth stays with Hermes; Atlas only names the Hermes profile each agent should use.%s\n' "$DIM" "$RESET"
 printf '%sPress Enter to accept a default. You can edit this file later with:%s atlas configure\n' "$DIM" "$RESET"
 
-section "1. Household or project"
-prompt_slug "Project id" "household" "A short internal slug for this install. It is used in config and database records."
-project_id="$PROMPT_RESULT"
-
-prompt_text "Project display name" "Household Atlas" "Human-readable name for this install."
+section "1. Name this Atlas"
+prompt_text "Atlas name" "Household Atlas" "This labels the private Atlas install, like 'Household Atlas' or 'Garcia Family Atlas'. It is not an agent persona."
 project_name="$PROMPT_RESULT"
+project_id="${ATLAS_PROJECT_ID:-$(slugify "$project_name")}"
+if ! is_slug "$project_id"; then
+  project_id="$(slugify "$project_id")"
+fi
+info "Internal config id: $project_id"
 
 section "2. Allowed people"
-prompt_count "How many people should be allowed to use this Atlas?" "2" "Each person gets an internal user id and, optionally, an allowlisted WhatsApp number."
+prompt_count "How many people should be allowed to use this Atlas?" "2" "Atlas rejects WhatsApp senders who are not on this list. Hermes only sees messages after Atlas authorizes and routes them."
 user_count="$PROMPT_RESULT"
 
 user_ids=()

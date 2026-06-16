@@ -38,7 +38,7 @@ The install script works in two modes. When run outside a checkout, including th
 
 After editing `.env` or `ecosystem/atlas.yaml`, run `atlas apply` to rerun migrations, converge seeded identities/agents/allowlists, regenerate Hermes profile assets, and restart Atlas API.
 
-Use the CLI after bootstrap:
+Use the CLI after install:
 
 ```bash
 atlas status
@@ -89,9 +89,9 @@ The installer is safe to rerun:
 
 ## Ecosystem Config
 
-The local ecosystem file controls identity and routing:
+The local ecosystem file controls identity and routing. Atlas uses it as the private perimeter in front of Hermes: WhatsApp sender identity, agent membership, routing, approvals, and memory boundaries are checked by Atlas before a message reaches Hermes. Hermes remains the runtime and handles model/provider auth.
 
-If `ecosystem/atlas.yaml` does not exist, the installer opens an onboarding questionnaire. It asks for allowed users, WhatsApp numbers, shared or personal agents, Hermes profile names, optional per-agent Hermes endpoint overrides, Honcho memory workspaces, and enabled Atlas bridge capabilities. It does not ask for OpenAI or LLM provider keys; those stay with the Hermes/runtime auth provider.
+If `ecosystem/atlas.yaml` does not exist, the installer opens an onboarding questionnaire. It asks for the Atlas install name, allowed users, WhatsApp numbers, shared or personal agents, Hermes profile names, optional per-agent Hermes endpoint overrides, Honcho memory workspaces, and enabled Atlas bridge capabilities. It does not ask for OpenAI or LLM provider keys; those stay with the Hermes/runtime auth provider.
 
 ```yaml
 users:
