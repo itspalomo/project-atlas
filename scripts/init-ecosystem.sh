@@ -109,10 +109,15 @@ YAML
         - "/$agent_id"
     skills:
       - household
+      - planning
       - calendar
       - reminders
-      - planning
       - health
+      - training
+      - nutrition
+      - location
+      - memory
+      - whatsapp
     prompt: |
       # $agent_name
 

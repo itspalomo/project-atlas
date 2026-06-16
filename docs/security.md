@@ -32,6 +32,7 @@
 - Atlas API runs as a non-root user in the container.
 - Atlas API runs with a read-only root filesystem and `no-new-privileges`.
 - Hermes should not receive unrestricted host filesystem access.
+- Agent skills are prompt and manifest guidance, not authorization. Atlas still enforces identity, user scope, memory grants, and approvals.
 
 ## Approvals
 

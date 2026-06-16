@@ -7,6 +7,7 @@ import {
   agentPrompt,
   loadEcosystemConfig
 } from "../ecosystem/ecosystemConfig.js";
+import { skillManifestForIds } from "../skills/skillCatalog.js";
 
 type Args = {
   outDir: string;
@@ -27,7 +28,8 @@ async function main(): Promise<void> {
       id: agent.id,
       displayName: agent.displayName,
       hermesProfile: agentHermesProfile(agent),
-      honchoWorkspace: agentHonchoWorkspace(agent)
+      honchoWorkspace: agentHonchoWorkspace(agent),
+      skills: agent.skills
     }))
   };
   const desiredProfiles = new Set(manifest.profiles.map((profile) => profile.hermesProfile));
@@ -38,10 +40,29 @@ async function main(): Promise<void> {
     const profile = agentHermesProfile(agent);
     const profileDir = path.join(outDir, profile);
     const honchoWorkspace = agentHonchoWorkspace(agent);
+    const skillManifest = skillManifestForIds(agent.skills);
 
     await rm(profileDir, { recursive: true, force: true });
     await mkdir(profileDir, { recursive: true });
     await writeFile(path.join(profileDir, "SOUL.md"), `${agentPrompt(agent)}\n`, "utf8");
+    await writeFile(
+      path.join(profileDir, "skills.json"),
+      `${JSON.stringify(
+        {
+          agentId: agent.id,
+          skills: skillManifest,
+          enforcement: {
+            identity: "Atlas API",
+            approvals: "Atlas API",
+            memory: "Honcho workspace and Atlas shared_memory_grants",
+            bridgeWrites: "iOS bridge scoped device tokens"
+          }
+        },
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
     await writeFile(
       path.join(profileDir, "honcho.json"),
       `${JSON.stringify(

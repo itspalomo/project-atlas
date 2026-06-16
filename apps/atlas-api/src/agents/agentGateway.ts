@@ -63,6 +63,7 @@ export async function generateAgentReply(
         atlas_agent_id: input.agentId,
         atlas_hermes_profile: agent.hermesProfile,
         atlas_honcho_workspace: agent.honchoWorkspace,
+        atlas_skills: agent.skills,
         atlas_conversation_id: input.conversationId,
         atlas_channel: input.channel
       }
@@ -98,6 +99,7 @@ type AgentRuntimeConfig = {
   id: string;
   hermesProfile: string;
   honchoWorkspace: string;
+  skills: string[];
   runtimeUrl?: string;
 };
 
@@ -107,6 +109,7 @@ async function getAgentRuntimeConfig(pool: Pool, agentId: string): Promise<Agent
     hermes_profile: string;
     honcho_workspace: string;
     config: {
+      skills?: unknown;
       runtime?: {
         url?: string;
       };
@@ -126,7 +129,8 @@ async function getAgentRuntimeConfig(pool: Pool, agentId: string): Promise<Agent
     return {
       id: agentId,
       hermesProfile: agentId,
-      honchoWorkspace: agentId
+      honchoWorkspace: agentId,
+      skills: []
     };
   }
 
@@ -134,6 +138,9 @@ async function getAgentRuntimeConfig(pool: Pool, agentId: string): Promise<Agent
     id: row.id,
     hermesProfile: row.hermes_profile,
     honchoWorkspace: row.honcho_workspace,
+    skills: Array.isArray(row.config.skills)
+      ? row.config.skills.filter((skill): skill is string => typeof skill === "string")
+      : [],
     runtimeUrl: row.config.runtime?.url
   };
 }

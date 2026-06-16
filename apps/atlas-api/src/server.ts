@@ -3,6 +3,7 @@ import { Pool } from "pg";
 import { AtlasConfig } from "./config.js";
 import { registerWhatsAppRoutes } from "./whatsapp/routes.js";
 import { registerBridgeRoutes } from "./bridge/routes.js";
+import { builtInSkills, skillManifestForIds } from "./skills/skillCatalog.js";
 
 export async function buildServer(config: AtlasConfig, pool: Pool): Promise<FastifyInstance> {
   const app = fastify({
@@ -48,6 +49,10 @@ export async function buildServer(config: AtlasConfig, pool: Pool): Promise<Fast
       });
     }
   });
+
+  app.get("/skills", async () => ({
+    skills: skillManifestForIds(builtInSkills.map((skill) => skill.id))
+  }));
 
   await registerWhatsAppRoutes(app, pool, config);
   await registerBridgeRoutes(app, pool, config);

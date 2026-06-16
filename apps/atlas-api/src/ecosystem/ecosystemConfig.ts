@@ -2,6 +2,7 @@ import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import yaml from "js-yaml";
 import { z } from "zod";
+import { renderSkillPrompt, validateSkillIds } from "../skills/skillCatalog.js";
 
 const identitySchema = z.object({
   channel: z.enum(["whatsapp"]),
@@ -71,6 +72,8 @@ export async function loadEcosystemConfig(configPath: string): Promise<Ecosystem
   const agentIds = new Set(config.agents.map((agent) => agent.id));
 
   for (const agent of config.agents) {
+    validateSkillIds(agent.skills, `Agent ${agent.id}`);
+
     for (const userId of [...agent.owners, ...agent.members, ...agent.routing.defaultFor]) {
       if (!userIds.has(userId)) {
         throw new Error(`Agent ${agent.id} references unknown user ${userId}`);
@@ -129,11 +132,7 @@ export function agentHonchoWorkspace(agent: EcosystemAgent): string {
 }
 
 export function agentPrompt(agent: EcosystemAgent): string {
-  if (agent.prompt) {
-    return agent.prompt.trimEnd();
-  }
-
-  return [
+  const basePrompt = agent.prompt?.trimEnd() ?? [
     `# ${agent.displayName}`,
     "",
     `You are ${agent.displayName}, a private Project Atlas agent.`,
@@ -146,6 +145,9 @@ export function agentPrompt(agent: EcosystemAgent): string {
       ? "This is a shared agent. Use only information intentionally shared into this workspace or structured shared facts exposed by Atlas."
       : "This is a personal agent. Keep this user's memory private unless the user explicitly shares something."
   ].join("\n");
+  const skillPrompt = renderSkillPrompt(agent.skills);
+
+  return [basePrompt, skillPrompt].filter(Boolean).join("\n\n").trimEnd();
 }
 
 function validateUnique(values: string[], label: string): void {

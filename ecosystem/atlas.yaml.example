@@ -41,11 +41,15 @@ agents:
         - "/household"
     skills:
       - household
+      - planning
       - calendar
       - reminders
-      - planning
       - health
+      - training
       - nutrition
+      - location
+      - memory
+      - whatsapp
     prompt: |
       # Household Atlas
 

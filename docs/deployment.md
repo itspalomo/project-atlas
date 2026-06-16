@@ -30,7 +30,7 @@ The installer:
 6. Starts Atlas PostgreSQL and self-hosted Honcho.
 7. Runs migrations.
 8. Seeds users, agents, channel allowlists, and membership from `ecosystem/atlas.yaml`.
-9. Generates Hermes profile assets and Honcho configs.
+9. Generates Hermes profile assets, skill manifests, and Honcho configs.
 10. Starts Atlas API.
 
 ## Idempotency
@@ -71,6 +71,17 @@ agents:
       aliases:
         - "family:"
         - "/family"
+    skills:
+      - household
+      - planning
+      - calendar
+      - reminders
+      - health
+      - training
+      - nutrition
+      - location
+      - memory
+      - whatsapp
 ```
 
 ## Runtime

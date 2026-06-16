@@ -2,6 +2,7 @@ import { createPool } from "./pool.js";
 import { normalizePhoneNumber } from "../identity/phone.js";
 import { loadConfig } from "../config.js";
 import { agentHermesProfile, agentHonchoWorkspace, loadEcosystemConfig } from "../ecosystem/ecosystemConfig.js";
+import { skillManifestForIds } from "../skills/skillCatalog.js";
 
 const supportedIdentityChannels = ["whatsapp"] as const;
 
@@ -43,6 +44,7 @@ async function main(): Promise<void> {
     for (const agent of ecosystem.agents) {
       const hermesProfile = agentHermesProfile(agent);
       const honchoWorkspace = agentHonchoWorkspace(agent);
+      const skillManifest = skillManifestForIds(agent.skills);
       const memberships = desiredMembershipsForAgent(agent);
       const membershipUserIds = [...memberships.keys()];
 
@@ -74,6 +76,7 @@ async function main(): Promise<void> {
           honchoWorkspace,
           JSON.stringify({
             skills: agent.skills,
+            skillManifest,
             routingAliases: agent.routing.aliases,
             defaultFor: agent.routing.defaultFor,
             runtime: agent.runtime,
