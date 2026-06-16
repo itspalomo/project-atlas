@@ -8,18 +8,18 @@ Target host:
 - Tailscale Funnel for the public WhatsApp webhook.
 - Runtime model auth configured through your selected Hermes provider. If you use Hermes/OpenAI auth provider, no `LLM_*` key is required in Atlas `.env`.
 
-## One-Command Bootstrap
+## One-Command Install
 
 Once the repository is public or otherwise reachable from the VPS, run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/scripts/bootstrap-vps.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/scripts/install.sh | sudo bash
 ```
 
 To pass common non-interactive settings up front:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/scripts/bootstrap-vps.sh \
+curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/scripts/install.sh \
   | sudo env \
       TAILSCALE_AUTH_KEY=tskey-auth-... \
       TAILSCALE_HOSTNAME=project-atlas \
@@ -27,7 +27,14 @@ curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/script
       bash
 ```
 
-The bootstrap script installs base package dependencies, clones or updates Atlas at `/opt/project-atlas`, creates `.env` from `.env.example` when missing, copies supported environment overrides into `.env`, installs `/usr/local/bin/atlas`, and runs the Atlas installer.
+On macOS, test the clone/config/CLI path without starting services:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/scripts/install.sh \
+  | ATLAS_DIR="$HOME/project-atlas-test" ATLAS_RUN_INSTALL=false bash
+```
+
+The install script works in two modes. When run outside a checkout, including through `curl | bash`, it installs base package dependencies where supported, clones or updates Atlas, creates `.env` from `.env.example` when missing, copies supported environment overrides into `.env`, installs the `atlas` CLI, and runs the local installer. When run inside a checkout, it installs that checkout directly.
 
 After editing `.env` or `ecosystem/atlas.yaml`, run `atlas apply` to rerun migrations, converge seeded identities/agents/allowlists, regenerate Hermes profile assets, and restart Atlas API.
 
@@ -43,7 +50,7 @@ atlas runtime
 atlas update
 ```
 
-For a manual checkout, run `scripts/atlasctl install` from the repository root.
+For a manual checkout, run `scripts/install.sh` or `scripts/atlasctl install` from the repository root.
 
 The installer:
 
@@ -58,12 +65,14 @@ The installer:
 9. Generates Hermes profile assets, skill manifests, and Honcho configs.
 10. Starts Atlas API.
 
-Bootstrap environment knobs:
+Installer environment knobs:
 
 - `ATLAS_REPO_URL`: Git repository URL, default `https://github.com/itspalomo/project-atlas.git`.
 - `ATLAS_BRANCH`: Git branch, default `main`.
-- `ATLAS_DIR`: Install directory, default `/opt/project-atlas`.
+- `ATLAS_DIR`: Install directory, default `/opt/project-atlas` on Linux and `$HOME/project-atlas` elsewhere.
 - `ATLAS_RUN_INSTALL`: Set to `false` to only clone/update, create `.env`, and install the CLI.
+- `ATLAS_INSTALL_CLI`: Set to `false` to skip installing the `atlas` CLI symlink.
+- `ATLAS_CLI_PATH`: Override where the `atlas` CLI symlink is installed.
 
 ## Idempotency
 

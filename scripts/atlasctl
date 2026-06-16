@@ -90,16 +90,34 @@ case "$command" in
     echo "Run 'atlas apply' to apply identity, agent, memory, and profile changes."
     ;;
   install-cli)
-    if [[ "$(uname -s)" != "Linux" ]]; then
-      echo "install-cli is intended for Linux VPS hosts."
-      exit 0
+    target="${ATLAS_CLI_PATH:-}"
+    if [[ -z "$target" ]]; then
+      if [[ "$(id -u)" -eq 0 || -w /usr/local/bin ]]; then
+        target="/usr/local/bin/atlas"
+      else
+        target="${HOME:-$ROOT_DIR}/.local/bin/atlas"
+      fi
     fi
-    if [[ "$(id -u)" -eq 0 ]]; then
-      ln -sf "$ROOT_DIR/scripts/atlasctl" /usr/local/bin/atlas
-    else
-      sudo ln -sf "$ROOT_DIR/scripts/atlasctl" /usr/local/bin/atlas
+
+    target_dir="$(dirname "$target")"
+    use_sudo=""
+    writable_path="$target_dir"
+    while [[ ! -e "$writable_path" && "$writable_path" != "/" ]]; do
+      writable_path="$(dirname "$writable_path")"
+    done
+
+    if [[ "$(id -u)" -ne 0 && ! -w "$writable_path" ]]; then
+      use_sudo="sudo"
     fi
-    echo "Installed atlas CLI at /usr/local/bin/atlas."
+
+    $use_sudo mkdir -p "$target_dir"
+    $use_sudo ln -sf "$ROOT_DIR/scripts/atlasctl" "$target"
+    echo "Installed atlas CLI at $target."
+
+    case ":$PATH:" in
+      *":$target_dir:"*) ;;
+      *) echo "Add $target_dir to PATH if the atlas command is not found." ;;
+    esac
     ;;
   doctor)
     echo "Atlas root: $ROOT_DIR"

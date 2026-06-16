@@ -16,17 +16,19 @@ Atlas is self-serve. A local `ecosystem/atlas.yaml` file defines the users, thei
 - Baked-in agent skill catalog for household coordination, planning, calendar, reminders, health, training, nutrition, semantic location, memory, and WhatsApp behavior.
 - Self-serve ecosystem config generator.
 - Hermes profile and Honcho config generation from the local ecosystem config.
-- Honcho self-hosting bootstrap wired into the default installer.
+- Honcho self-hosting setup wired into the default installer.
 - `atlas` CLI wrapper for install, configure, apply, status, logs, runtime, webhook, and updates.
-- VPS installer script for Ubuntu 24.04 style hosts.
+- Cross-platform installer script for macOS and Linux VPS hosts.
 
 ## Quick Start
 
-On a VPS, once this repository is public or otherwise reachable from the host:
+Once this repository is public or otherwise reachable from the host:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/scripts/bootstrap-vps.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/scripts/install.sh | bash
 ```
+
+On Linux VPS hosts, run that through `sudo bash` when installing to the default `/opt/project-atlas`.
 
 Then use the installed CLI:
 
@@ -77,6 +79,7 @@ Runtime checks:
 ## Docs
 
 - [Architecture](docs/architecture.md)
+- [CLI](docs/cli.md)
 - [Deployment](docs/deployment.md)
 - [Security Model](docs/security.md)
 - [Memory Isolation](docs/memory-isolation.md)
