@@ -13,6 +13,7 @@ const envSchema = z.object({
   WHATSAPP_ACCESS_TOKEN: z.string().optional(),
   WHATSAPP_APP_SECRET: z.string().optional(),
   WHATSAPP_VERIFY_TOKEN: z.string().min(1),
+  WHATSAPP_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
   WHATSAPP_SEND_UNAUTHORIZED_REPLY: z
     .enum(["true", "false"])
     .default("false")
@@ -40,6 +41,7 @@ export type AtlasConfig = {
     accessToken?: string;
     appSecret?: string;
     verifyToken: string;
+    requestTimeoutMs: number;
     sendUnauthorizedReply: boolean;
   };
   runtimeMode: "stub" | "hermes";
@@ -70,6 +72,7 @@ export function loadConfig(env = process.env): AtlasConfig {
       accessToken: parsed.WHATSAPP_ACCESS_TOKEN,
       appSecret: parsed.WHATSAPP_APP_SECRET,
       verifyToken: parsed.WHATSAPP_VERIFY_TOKEN,
+      requestTimeoutMs: parsed.WHATSAPP_REQUEST_TIMEOUT_MS,
       sendUnauthorizedReply: parsed.WHATSAPP_SEND_UNAUTHORIZED_REPLY
     },
     runtimeMode: parsed.ATLAS_RUNTIME_MODE,

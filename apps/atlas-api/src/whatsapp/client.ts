@@ -13,6 +13,7 @@ export async function sendWhatsAppText(config: AtlasConfig, to: string, body: st
         authorization: `Bearer ${config.whatsapp.accessToken}`,
         "content-type": "application/json"
       },
+      signal: AbortSignal.timeout(config.whatsapp.requestTimeoutMs),
       body: JSON.stringify({
         messaging_product: "whatsapp",
         to,

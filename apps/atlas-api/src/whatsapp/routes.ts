@@ -163,7 +163,16 @@ async function handleInboundTextMessage(
     });
 
     if (config.whatsapp.sendUnauthorizedReply) {
-      await sendWhatsAppText(config, normalizedFrom, "This Atlas number is private and your number is not authorized.");
+      try {
+        await sendWhatsAppText(config, normalizedFrom, "This Atlas number is private and your number is not authorized.");
+      } catch (error) {
+        await recordAuditLog(pool, {
+          action: "whatsapp.unauthorized_reply.send_failed",
+          subjectType: "whatsapp_sender",
+          subjectId: normalizedFrom,
+          metadata: { error: error instanceof Error ? error.message : String(error) }
+        });
+      }
     }
 
     return;
@@ -172,7 +181,7 @@ async function handleInboundTextMessage(
   const selected = await selectAgentForMessage(pool, identity.userId, identity.agentId, message.text);
   const conversationId = `whatsapp:${normalizedFrom}:${selected.agentId}`;
 
-  await pool.query(
+  const inboundInsert = await pool.query<{ id: string }>(
     `
       insert into inbound_messages (
         channel,
@@ -186,6 +195,7 @@ async function handleInboundTextMessage(
       values ('whatsapp', $1, $2, $3, $4, $5, to_timestamp($6))
       on conflict (channel, channel_message_id)
       do nothing
+      returning id
     `,
     [
       message.messageId,
@@ -196,6 +206,18 @@ async function handleInboundTextMessage(
       Number(message.timestamp ?? Math.floor(Date.now() / 1000))
     ]
   );
+
+  if (!inboundInsert.rows[0]) {
+    await recordAuditLog(pool, {
+      actorUserId: identity.userId,
+      action: "whatsapp.message.duplicate_ignored",
+      subjectType: "inbound_message",
+      subjectId: message.messageId,
+      metadata: { agentId: selected.agentId }
+    });
+
+    return;
+  }
 
   await recordAuditLog(pool, {
     actorUserId: identity.userId,
@@ -213,7 +235,30 @@ async function handleInboundTextMessage(
     conversationId
   });
 
-  const response = await sendWhatsAppText(config, normalizedFrom, agentReply.text);
+  let providerStatus = "not_configured";
+  try {
+    const response = await sendWhatsAppText(config, normalizedFrom, agentReply.text);
+    providerStatus = response ? `${response.status}` : "not_configured";
+
+    if (response && !response.ok) {
+      await recordAuditLog(pool, {
+        actorUserId: identity.userId,
+        action: "whatsapp.reply.send_failed",
+        subjectType: "agent",
+        subjectId: selected.agentId,
+        metadata: { status: response.status, statusText: response.statusText, messageId: message.messageId }
+      });
+    }
+  } catch (error) {
+    providerStatus = "network_error";
+    await recordAuditLog(pool, {
+      actorUserId: identity.userId,
+      action: "whatsapp.reply.send_failed",
+      subjectType: "agent",
+      subjectId: selected.agentId,
+      metadata: { error: error instanceof Error ? error.message : String(error), messageId: message.messageId }
+    });
+  }
 
   await pool.query(
     `
@@ -234,7 +279,7 @@ async function handleInboundTextMessage(
       selected.agentId,
       agentReply.text,
       agentReply.runtime,
-      response ? `${response.status}` : "not_configured"
+      providerStatus
     ]
   );
 }

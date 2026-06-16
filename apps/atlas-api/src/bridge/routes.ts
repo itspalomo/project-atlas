@@ -1,8 +1,15 @@
 import { FastifyInstance } from "fastify";
+import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { Pool } from "pg";
 import { AtlasConfig } from "../config.js";
-import { authenticateBridgeRequest, BridgeAuthError } from "./bridgeAuth.js";
+import {
+  assertBridgeBootstrap,
+  assertBridgeUser,
+  authenticateBridgeRequest,
+  BridgeAuthError,
+  hashBridgeToken
+} from "./bridgeAuth.js";
 import { recordAuditLog } from "../audit/auditLog.js";
 
 const healthSummarySchema = z.object({
@@ -27,6 +34,11 @@ const healthSummarySchema = z.object({
     )
     .default([]),
   generatedAt: z.string().datetime()
+});
+
+const registerBridgeDeviceSchema = z.object({
+  userId: z.string().min(1),
+  displayName: z.string().min(1).max(120)
 });
 
 const calendarBusyBlocksSchema = z.object({
@@ -73,6 +85,7 @@ const nutritionDailySummarySchema = z.object({
 
 const nutritionMealEntrySchema = z.object({
   userId: z.string().min(1),
+  externalId: z.string().min(1).max(200).optional(),
   consumedAt: z.string().datetime(),
   mealType: z.enum(["breakfast", "lunch", "dinner", "snack", "unknown"]).default("unknown"),
   source: nutritionSourceSchema,
@@ -100,10 +113,53 @@ export async function registerBridgeRoutes(
   pool: Pool,
   config: AtlasConfig
 ): Promise<void> {
+  app.post("/bridge/v1/devices/register", async (request, reply) => {
+    try {
+      const principal = await authenticateBridgeRequest(request, pool, config);
+      assertBridgeBootstrap(principal);
+      const body = registerBridgeDeviceSchema.parse(request.body);
+      const userResult = await pool.query<{ id: string }>("select id from users where id = $1 limit 1", [body.userId]);
+      if (!userResult.rows[0]) {
+        return reply.code(404).send({
+          ok: false,
+          error: "Unknown bridge user"
+        });
+      }
+
+      const token = randomBytes(32).toString("base64url");
+
+      const result = await pool.query<{ id: string }>(
+        `
+          insert into bridge_devices (user_id, display_name, token_hash)
+          values ($1, $2, $3)
+          returning id
+        `,
+        [body.userId, body.displayName, hashBridgeToken(token)]
+      );
+
+      await recordAuditLog(pool, {
+        actorUserId: body.userId,
+        action: "bridge.device.registered",
+        subjectType: "bridge_device",
+        subjectId: result.rows[0]?.id,
+        metadata: { displayName: body.displayName }
+      });
+
+      return reply.code(201).send({
+        ok: true,
+        deviceId: result.rows[0]?.id,
+        token
+      });
+    } catch (error) {
+      return bridgeError(reply, error);
+    }
+  });
+
   app.post("/bridge/v1/health/daily-summary", async (request, reply) => {
     try {
-      await authenticateBridgeRequest(request, pool, config);
+      const principal = await authenticateBridgeRequest(request, pool, config);
       const body = healthSummarySchema.parse(request.body);
+      assertBridgeUser(principal, body.userId);
 
       await pool.query(
         `
@@ -165,8 +221,9 @@ export async function registerBridgeRoutes(
 
   app.post("/bridge/v1/calendar/busy-blocks", async (request, reply) => {
     try {
-      await authenticateBridgeRequest(request, pool, config);
+      const principal = await authenticateBridgeRequest(request, pool, config);
       const body = calendarBusyBlocksSchema.parse(request.body);
+      assertBridgeUser(principal, body.userId);
 
       const client = await pool.connect();
       try {
@@ -230,8 +287,9 @@ export async function registerBridgeRoutes(
 
   app.post("/bridge/v1/location/signal", async (request, reply) => {
     try {
-      await authenticateBridgeRequest(request, pool, config);
+      const principal = await authenticateBridgeRequest(request, pool, config);
       const body = locationSignalSchema.parse(request.body);
+      assertBridgeUser(principal, body.userId);
 
       await pool.query(
         `
@@ -262,8 +320,9 @@ export async function registerBridgeRoutes(
 
   app.post("/bridge/v1/nutrition/daily-summary", async (request, reply) => {
     try {
-      await authenticateBridgeRequest(request, pool, config);
+      const principal = await authenticateBridgeRequest(request, pool, config);
       const body = nutritionDailySummarySchema.parse(request.body);
+      assertBridgeUser(principal, body.userId);
 
       await pool.query(
         `
@@ -337,13 +396,15 @@ export async function registerBridgeRoutes(
 
   app.post("/bridge/v1/nutrition/meal-entry", async (request, reply) => {
     try {
-      await authenticateBridgeRequest(request, pool, config);
+      const principal = await authenticateBridgeRequest(request, pool, config);
       const body = nutritionMealEntrySchema.parse(request.body);
+      assertBridgeUser(principal, body.userId);
 
       const result = await pool.query<{ id: string }>(
         `
           insert into nutrition_meal_entries (
             user_id,
+            external_id,
             consumed_at,
             meal_type,
             source,
@@ -359,11 +420,28 @@ export async function registerBridgeRoutes(
             confidence,
             metadata
           )
-          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::jsonb)
+          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16::jsonb)
+          on conflict (user_id, source, external_id)
+          where external_id is not null
+          do update set
+            consumed_at = excluded.consumed_at,
+            meal_type = excluded.meal_type,
+            description = excluded.description,
+            energy_kcal = excluded.energy_kcal,
+            protein_g = excluded.protein_g,
+            carbs_g = excluded.carbs_g,
+            fat_g = excluded.fat_g,
+            fiber_g = excluded.fiber_g,
+            sugar_g = excluded.sugar_g,
+            sodium_mg = excluded.sodium_mg,
+            water_ml = excluded.water_ml,
+            confidence = excluded.confidence,
+            metadata = excluded.metadata
           returning id
         `,
         [
           body.userId,
+          body.externalId ?? null,
           body.consumedAt,
           body.mealType,
           body.source,
@@ -397,8 +475,9 @@ export async function registerBridgeRoutes(
 
   app.get("/bridge/v1/approvals/pending", async (request, reply) => {
     try {
-      await authenticateBridgeRequest(request, pool, config);
+      const principal = await authenticateBridgeRequest(request, pool, config);
       const query = z.object({ userId: z.string().min(1) }).parse(request.query);
+      assertBridgeUser(principal, query.userId);
 
       const result = await pool.query(
         `
@@ -419,9 +498,10 @@ export async function registerBridgeRoutes(
 
   app.post("/bridge/v1/approvals/:id/decision", async (request, reply) => {
     try {
-      await authenticateBridgeRequest(request, pool, config);
+      const principal = await authenticateBridgeRequest(request, pool, config);
       const params = z.object({ id: z.string().uuid() }).parse(request.params);
       const body = approvalDecisionSchema.parse(request.body);
+      assertBridgeUser(principal, body.decidedByUserId);
 
       const result = await pool.query(
         `
@@ -433,9 +513,10 @@ export async function registerBridgeRoutes(
               updated_at = now()
           where id = $1
             and status = 'pending'
+            and target_user_id = $5
           returning id, status
         `,
-        [params.id, body.decision, body.decidedByUserId, body.reason ?? null]
+        [params.id, body.decision, body.decidedByUserId, body.reason ?? null, body.decidedByUserId]
       );
 
       if (!result.rows[0]) {

@@ -16,6 +16,8 @@ The bridge reads HealthKit locally and sends daily summaries:
 
 The watch and phone both write through HealthKit. The bridge should prefer HealthKit aggregate queries over per-device guesses, while preserving a coarse source value: `iphone`, `apple_watch`, `mixed`, or `manual`.
 
+HealthKit permissions must be requested per data type. Keep the bridge implementation aligned with the user's explicit authorization choices and do not infer consent from other granted data types.
+
 ## Calendar
 
 Default sync sends only availability:
@@ -72,3 +74,21 @@ sequenceDiagram
   Bridge->>Atlas: approval decision
   Bridge->>Reminders: create reminder locally
 ```
+
+## Device Pairing
+
+Initial setup uses the bootstrap bridge token from `.env` to register a device:
+
+```http
+POST /bridge/v1/devices/register
+Authorization: Bearer <ATLAS_BRIDGE_API_KEY>
+```
+
+The response includes a `deviceId` and a raw device token. Store the token in the iOS Keychain. After pairing, bridge requests use:
+
+```http
+Authorization: Bearer <device-token>
+X-Atlas-Device-Id: <device-id>
+```
+
+The server restricts device tokens to the paired `userId`.

@@ -31,6 +31,24 @@ export async function buildServer(config: AtlasConfig, pool: Pool): Promise<Fast
     honchoConfigured: Boolean(config.honcho?.baseUrl)
   }));
 
+  app.get("/ready", async (_request, reply) => {
+    try {
+      await pool.query("select 1");
+
+      return {
+        ok: true,
+        service: "atlas-api",
+        database: "connected"
+      };
+    } catch {
+      return reply.code(503).send({
+        ok: false,
+        service: "atlas-api",
+        database: "unavailable"
+      });
+    }
+  });
+
   await registerWhatsAppRoutes(app, pool, config);
   await registerBridgeRoutes(app, pool, config);
 

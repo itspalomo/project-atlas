@@ -58,5 +58,6 @@ Group chat routing is intentionally deferred until the privacy and sender attrib
 - Text messages from authorized senders are routed to the mapped agent.
 - Non-text messages are ignored in v1.
 - Unknown senders are audited and ignored by default.
+- Duplicate webhook deliveries for the same WhatsApp message id are ignored after the first insert, preventing duplicate agent replies.
 
 Set `WHATSAPP_SEND_UNAUTHORIZED_REPLY=true` only if you want unknown senders to receive a rejection message.

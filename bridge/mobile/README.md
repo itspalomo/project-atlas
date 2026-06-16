@@ -32,3 +32,11 @@ Calendar privacy:
 Future implementation target:
 
 - React Native iOS app with a development client because HealthKit, EventKit, Reminders, notifications, and background sync need native modules.
+
+Pairing model:
+
+- Use the bootstrap bridge token only during controlled setup.
+- Register the device with Atlas and store the returned device token in the iOS Keychain.
+- Send `X-Atlas-Device-Id` on bridge requests.
+- Generate stable local ids for meal entries and pass them as `externalId` so retries do not duplicate meals.
+- Future hardening can add Apple App Attest before issuing device tokens.

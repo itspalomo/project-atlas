@@ -39,6 +39,11 @@ npm run seed --workspace @project-atlas/atlas-api
 npm run dev --workspace @project-atlas/atlas-api
 ```
 
+Runtime checks:
+
+- `GET /health` confirms the API process is alive.
+- `GET /ready` confirms the API can reach PostgreSQL.
+
 ## Security Defaults
 
 - Hermes dashboard/API ports bind to localhost by default.

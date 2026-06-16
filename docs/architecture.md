@@ -47,6 +47,7 @@ flowchart TD
 - Shared-agent aliases such as `family:` or `/household` are defined in `ecosystem/atlas.yaml`.
 - A shared-agent alias only routes if the sender is a member of that agent.
 - Unknown WhatsApp senders are rejected and audited.
+- Replayed WhatsApp message ids are ignored after the first stored inbound message.
 
 ## Structured Data Versus Memory
 

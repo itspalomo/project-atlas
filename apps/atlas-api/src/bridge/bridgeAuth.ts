@@ -15,6 +15,22 @@ export class BridgeAuthError extends Error {
   }
 }
 
+export function assertBridgeUser(principal: BridgePrincipal, userId: string): void {
+  if (principal.type === "bootstrap") {
+    return;
+  }
+
+  if (principal.userId !== userId) {
+    throw new BridgeAuthError("Bridge device cannot access this user");
+  }
+}
+
+export function assertBridgeBootstrap(principal: BridgePrincipal): void {
+  if (principal.type !== "bootstrap") {
+    throw new BridgeAuthError("Bootstrap bridge token required");
+  }
+}
+
 export async function authenticateBridgeRequest(
   request: FastifyRequest,
   pool: Pool,
@@ -55,6 +71,8 @@ export async function authenticateBridgeRequest(
     throw new BridgeAuthError();
   }
 
+  await pool.query("update bridge_devices set last_seen_at = now(), updated_at = now() where id = $1", [device.id]);
+
   return {
     type: "device",
     deviceId: device.id,
@@ -83,7 +101,7 @@ function headerValue(value: string | string[] | undefined): string | undefined {
   return value;
 }
 
-function sha256(value: string): string {
+export function hashBridgeToken(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
@@ -96,4 +114,8 @@ function safeEqual(left: string, right: string): boolean {
   }
 
   return timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function sha256(value: string): string {
+  return hashBridgeToken(value);
 }

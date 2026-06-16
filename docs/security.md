@@ -18,8 +18,10 @@
 
 ## iOS Bridge
 
-- Phase 1 supports a bootstrap bearer token.
-- Device-specific tokens are modeled in `bridge_devices`.
+- The bootstrap bearer token is for setup only.
+- Devices register through the bridge API and receive a device-specific token once.
+- Device-specific tokens are scoped to the paired `userId`.
+- Device token hashes are stored in `bridge_devices`; raw tokens are not stored.
 - Health data is summarized before leaving the phone.
 - Calendar sync defaults to busy blocks only.
 - Location sync stores semantic places, not coordinates.
