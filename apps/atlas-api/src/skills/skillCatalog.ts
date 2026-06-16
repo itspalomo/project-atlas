@@ -85,11 +85,28 @@ export const builtInSkills: AtlasSkill[] = [
     title: "Training Support",
     category: "wellness",
     summary: "Combine workouts, recovery, schedule, and gym context into practical training support.",
-    structuredFacts: ["health daily summaries", "location signals", "calendar busy blocks", "goals"],
-    allowedActions: ["Suggest workout adjustments", "Flag recovery constraints", "Connect gym presence to scheduled sessions"],
-    approvalRequired: ["Changing training goals", "Committing another user to a session"],
+    structuredFacts: [
+      "training plans",
+      "planned workouts",
+      "planned workout exercises and sets",
+      "performed workouts",
+      "performed workout exercises and sets",
+      "health daily summaries",
+      "location signals",
+      "calendar busy blocks",
+      "goals"
+    ],
+    allowedActions: [
+      "Draft workout plans",
+      "Suggest workout adjustments",
+      "Compare planned versus performed set work",
+      "Flag recovery constraints",
+      "Connect gym presence to scheduled sessions"
+    ],
+    approvalRequired: ["Changing training goals", "Committing another user to a session", "Sharing training details outside the user's workspace"],
     promptGuidance: [
       "Use workout, sleep, energy, and schedule context together instead of treating one metric as decisive.",
+      "Treat planned workouts and performed sets as structured facts, not memory.",
       "Keep recommendations conservative when recovery or injury context is unclear.",
       "If location confidence is low, ask a clarifying question before assuming the user is at the gym."
     ]

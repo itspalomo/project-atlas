@@ -12,6 +12,7 @@ Atlas is self-serve. A local `ecosystem/atlas.yaml` file defines the users, thei
 - WhatsApp Business Cloud API webhook scaffold with signature verification and sender allowlisting.
 - iOS bridge API scaffold for privacy-preserving HealthKit, calendar availability, semantic location, reminders, and approvals.
 - Lightweight nutrition intake bridge for calories, macros, fiber, hydration, and source confidence.
+- Deterministic training tables for plans, planned workouts, performed workouts, exercises, and sets.
 - Baked-in agent skill catalog for household coordination, planning, calendar, reminders, health, training, nutrition, semantic location, memory, and WhatsApp behavior.
 - Self-serve ecosystem config generator.
 - Hermes profile and Honcho config generation from the local ecosystem config.
@@ -64,3 +65,4 @@ Runtime checks:
 - [WhatsApp](docs/whatsapp.md)
 - [iOS Bridge](docs/ios-bridge.md)
 - [Nutrition Model](docs/nutrition-model.md)
+- [Training Model](docs/training-model.md)

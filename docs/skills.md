@@ -31,7 +31,7 @@ Built-in skills:
 | `calendar` | Free/busy reasoning and intentionally shared calendar context. |
 | `reminders` | Reminder proposals with iOS bridge execution after approval. |
 | `health` | Non-diagnostic HealthKit summary reasoning. |
-| `training` | Workout, recovery, schedule, and gym-context support. |
+| `training` | Training plans, planned workouts, performed workouts, exercises, sets, recovery, schedule, and gym-context support. |
 | `nutrition` | Calorie, macro, hydration, meal, and confidence reasoning. |
 | `location` | Coarse semantic place context such as home, work, gym, or unknown. |
 | `memory` | Honcho workspace use with Atlas memory isolation. |

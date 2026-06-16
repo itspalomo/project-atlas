@@ -18,6 +18,14 @@ The watch and phone both write through HealthKit. The bridge should prefer Healt
 
 HealthKit permissions must be requested per data type. Keep the bridge implementation aligned with the user's explicit authorization choices and do not infer consent from other granted data types.
 
+## Training
+
+Performed workout summaries can be synced from HealthKit into `performed_workouts` using a stable `externalId`, such as the local HealthKit workout identifier available to the app. Atlas stores workout type, start/end, duration, energy, distance, heart-rate summaries, source device, and optional exercise/set detail.
+
+Planned workouts and set prescriptions are deterministic Atlas facts, not memory. They can be created from chat-confirmed agent plans, manual iOS entry, or imports. When a performed workout links to a planned workout, Atlas marks the planned workout completed.
+
+Set-level data should be sent only when the user entered it, imported it, or confirmed an agent-created plan. Do not infer exact sets and reps from a generic HealthKit workout summary.
+
 ## Calendar
 
 Default sync sends only availability:
