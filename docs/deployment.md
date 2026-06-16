@@ -6,7 +6,7 @@ Target host:
 - Docker Compose.
 - Tailscale for private administration.
 - Tailscale Funnel for the public WhatsApp webhook.
-- A supported Honcho LLM provider key in `.env`.
+- Runtime model auth configured through your selected Hermes provider. If you use Hermes/OpenAI auth provider, no `LLM_*` key is required in Atlas `.env`.
 
 ## One-Command Bootstrap
 
@@ -105,6 +105,8 @@ Honcho is part of the Atlas Compose stack:
 - `honcho-redis`
 
 Atlas reaches Honcho at `http://honcho-api:8000` inside Compose. The host can reach it at `http://127.0.0.1:8000` by default. Honcho source is cloned to `vendor/honcho` because upstream builds from source rather than publishing a stable Docker Hub image.
+
+`LLM_OPENAI_API_KEY`, `LLM_ANTHROPIC_API_KEY`, and `LLM_GEMINI_API_KEY` are optional in Atlas `.env`. Leave them blank when Hermes or the chosen runtime auth provider handles model authentication.
 
 ## WhatsApp Public Edge
 

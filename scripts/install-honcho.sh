@@ -50,8 +50,7 @@ if [[ "${1:-}" == "--prepare" ]]; then
 fi
 
 if ! check_env; then
-  echo "Set LLM_OPENAI_API_KEY, LLM_ANTHROPIC_API_KEY, or LLM_GEMINI_API_KEY in .env before starting Honcho."
-  exit 1
+  echo "No Honcho LLM provider key is set in .env; continuing because the runtime may provide auth separately."
 fi
 
 docker compose up -d --build honcho-api honcho-deriver

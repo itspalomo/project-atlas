@@ -22,12 +22,6 @@ fi
 
 scripts/install-honcho.sh --prepare
 
-if ! scripts/install-honcho.sh --check-env; then
-  echo "Honcho needs an LLM provider before the one-command install can complete."
-  echo "Set LLM_OPENAI_API_KEY, LLM_ANTHROPIC_API_KEY, or LLM_GEMINI_API_KEY in .env and rerun scripts/install.sh."
-  exit 1
-fi
-
 docker compose up -d --build postgres honcho-api honcho-deriver
 docker compose build atlas-api
 docker compose run --rm atlas-api node dist/db/migrate.js
