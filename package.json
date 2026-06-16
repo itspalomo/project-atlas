@@ -1,0 +1,19 @@
+{
+  "name": "project-atlas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Private personal-agent ecosystem with Hermes runtime, Honcho memory, WhatsApp, and iOS bridge scaffolding.",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/atlas-api"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm run test --workspaces",
+    "migrate": "npm run migrate --workspace @project-atlas/atlas-api",
+    "seed": "npm run seed --workspace @project-atlas/atlas-api"
+  }
+}

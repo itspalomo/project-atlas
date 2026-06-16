@@ -1,0 +1,73 @@
+name: project-atlas
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-atlas}
+      POSTGRES_USER: ${POSTGRES_USER:-atlas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-atlas} -d ${POSTGRES_DB:-atlas}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
+
+  atlas-api:
+    build:
+      context: .
+      dockerfile: apps/atlas-api/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://atlas:atlas@postgres:5432/atlas}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${ATLAS_API_BIND:-127.0.0.1}:${ATLAS_API_PORT:-3000}:3000"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  hermes:
+    image: nousresearch/hermes-agent:latest
+    restart: unless-stopped
+    command: gateway run
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - hermes-data:/opt/data
+      - ./ecosystem/hermes:/opt/atlas/ecosystem:ro
+    ports:
+      - "127.0.0.1:${HERMES_DASHBOARD_PORT:-9119}:9119"
+      - "127.0.0.1:${HERMES_ATLAS_JOSE_PORT:-8642}:8642"
+      - "127.0.0.1:${HERMES_ATLAS_WIFE_PORT:-8643}:8643"
+      - "127.0.0.1:${HERMES_ATLAS_FAMILY_PORT:-8644}:8644"
+    security_opt:
+      - no-new-privileges:true
+    profiles:
+      - runtime
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TOKEN:-}
+    depends_on:
+      - atlas-api
+    profiles:
+      - public-webhook
+
+volumes:
+  postgres-data:
+  hermes-data:
