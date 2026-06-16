@@ -321,14 +321,14 @@ printf '%sAtlas is the private front door. It checks WhatsApp sender identity, a
 printf '%sHermes is still the agent runtime. Hermes/provider auth stays with Hermes; Atlas only names the Hermes profile each agent should use.%s\n' "$DIM" "$RESET"
 printf '%sPress Enter to accept a default. You can edit this file later with:%s atlas configure\n' "$DIM" "$RESET"
 
-section "1. Name this Atlas"
-prompt_text "Atlas name" "Household Atlas" "This labels the private Atlas install, like 'Household Atlas' or 'Garcia Family Atlas'. It is not an agent persona."
+section "1. Install label"
+prompt_text "Install label" "Household Atlas" "Optional friendly label used in generated profile metadata and admin output. It is not the agent name, product name, auth setting, or persona. Press Enter to keep the default."
 project_name="$PROMPT_RESULT"
 project_id="${ATLAS_PROJECT_ID:-$(slugify "$project_name")}"
 if ! is_slug "$project_id"; then
   project_id="$(slugify "$project_id")"
 fi
-info "Internal config id: $project_id"
+info "Internal id for config files: $project_id"
 
 section "2. Allowed people"
 prompt_count "How many people should be allowed to use this Atlas?" "2" "Atlas rejects WhatsApp senders who are not on this list. Hermes only sees messages after Atlas authorizes and routes them."
