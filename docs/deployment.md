@@ -33,6 +33,18 @@ The installer:
 9. Generates Hermes profile assets and Honcho configs.
 10. Starts Atlas API.
 
+## Idempotency
+
+The installer is safe to rerun:
+
+- `.env` is created only when missing.
+- Local placeholder secrets are rotated only while they still contain placeholder values.
+- Tailscale setup is skipped when the node is already connected.
+- Honcho source is cloned only when missing. Existing source is reused unless `HONCHO_AUTO_UPDATE=true`.
+- Database migrations run once through `schema_migrations`.
+- Seeding converges access control to `ecosystem/atlas.yaml`: stale memberships are removed, stale configured-user WhatsApp identities are disabled, and removed users lose enabled channel access.
+- Hermes profile generation rewrites configured profiles and removes stale generated profile directories from the prior manifest.
+
 ## Ecosystem Config
 
 The local ecosystem file controls identity and routing:

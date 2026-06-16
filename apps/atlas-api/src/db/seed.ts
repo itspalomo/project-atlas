@@ -3,10 +3,13 @@ import { normalizePhoneNumber } from "../identity/phone.js";
 import { loadConfig } from "../config.js";
 import { agentHermesProfile, agentHonchoWorkspace, loadEcosystemConfig } from "../ecosystem/ecosystemConfig.js";
 
+const supportedIdentityChannels = ["whatsapp"] as const;
+
 async function main(): Promise<void> {
   const config = loadConfig();
   const pool = createPool();
   const ecosystem = await loadEcosystemConfig(config.ecosystemConfigPath);
+  const configuredUserIds = ecosystem.users.map((user) => user.id);
 
   const client = await pool.connect();
   try {
@@ -27,9 +30,21 @@ async function main(): Promise<void> {
       );
     }
 
+    await client.query(
+      `
+        update identity_channels
+        set is_enabled = false,
+            updated_at = now()
+        where not (user_id = any($1::text[]))
+      `,
+      [configuredUserIds]
+    );
+
     for (const agent of ecosystem.agents) {
       const hermesProfile = agentHermesProfile(agent);
       const honchoWorkspace = agentHonchoWorkspace(agent);
+      const memberships = desiredMembershipsForAgent(agent);
+      const membershipUserIds = [...memberships.keys()];
 
       await client.query(
         `
@@ -67,32 +82,45 @@ async function main(): Promise<void> {
         ]
       );
 
-      for (const owner of unique([...agent.owners, ...agent.routing.defaultFor])) {
+      await client.query(
+        `
+          delete from agent_memberships
+          where agent_id = $1
+            and not (user_id = any($2::text[]))
+        `,
+        [agent.id, membershipUserIds]
+      );
+
+      for (const [userId, role] of memberships) {
         await client.query(
           `
             insert into agent_memberships (agent_id, user_id, role)
-            values ($1, $2, 'owner')
+            values ($1, $2, $3)
             on conflict (agent_id, user_id)
             do update set role = excluded.role
           `,
-          [agent.id, owner]
-        );
-      }
-
-      for (const member of unique([...agent.members, ...agent.routing.defaultFor])) {
-        await client.query(
-          `
-            insert into agent_memberships (agent_id, user_id, role)
-            values ($1, $2, 'member')
-            on conflict (agent_id, user_id)
-            do nothing
-          `,
-          [agent.id, member]
+          [agent.id, userId, role]
         );
       }
     }
 
     for (const user of ecosystem.users) {
+      const desiredIdentityIdsByChannel = desiredIdentityExternalIdsByChannel(user.identities);
+
+      for (const channel of supportedIdentityChannels) {
+        await client.query(
+          `
+            update identity_channels
+            set is_enabled = false,
+                updated_at = now()
+            where user_id = $1
+              and channel = $2
+              and not (external_id = any($3::text[]))
+          `,
+          [user.id, channel, desiredIdentityIdsByChannel.get(channel) ?? []]
+        );
+      }
+
       for (const identity of user.identities) {
         const defaultAgentId = identity.defaultAgent ?? findDefaultAgentForUser(ecosystem.agents, user.id)?.id;
         if (!defaultAgentId) {
@@ -133,6 +161,33 @@ async function main(): Promise<void> {
 }
 
 type SeedAgent = Awaited<ReturnType<typeof loadEcosystemConfig>>["agents"][number];
+type SeedIdentity = Awaited<ReturnType<typeof loadEcosystemConfig>>["users"][number]["identities"][number];
+type MembershipRole = "owner" | "member";
+
+function desiredMembershipsForAgent(agent: SeedAgent): Map<string, MembershipRole> {
+  const memberships = new Map<string, MembershipRole>();
+
+  for (const userId of unique([...agent.members, ...agent.routing.defaultFor])) {
+    memberships.set(userId, "member");
+  }
+
+  for (const userId of unique(agent.owners)) {
+    memberships.set(userId, "owner");
+  }
+
+  return memberships;
+}
+
+function desiredIdentityExternalIdsByChannel(identities: SeedIdentity[]): Map<string, string[]> {
+  const idsByChannel = new Map<string, string[]>();
+
+  for (const identity of identities) {
+    const externalId = identity.channel === "whatsapp" ? normalizePhoneNumber(identity.externalId) : identity.externalId;
+    idsByChannel.set(identity.channel, [...(idsByChannel.get(identity.channel) ?? []), externalId]);
+  }
+
+  return idsByChannel;
+}
 
 function findDefaultAgentForUser(agents: SeedAgent[], userId: string): SeedAgent | undefined {
   return (
