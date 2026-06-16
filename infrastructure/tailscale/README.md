@@ -10,4 +10,6 @@ sudo tailscale up --ssh --hostname project-atlas
 
 For non-interactive VPS bootstrap, set `TAILSCALE_AUTH_KEY` and `TAILSCALE_HOSTNAME` in `.env` before running `scripts/install.sh`.
 
+`scripts/install-tailscale.sh` is idempotent. It installs Tailscale only when the CLI is missing, starts `tailscaled` when possible, and skips `tailscale up` when `tailscale status --json` reports `BackendState: Running`.
+
 Do not expose Hermes or PostgreSQL publicly. The only public edge required for WhatsApp Cloud API is the signed webhook URL that forwards to Atlas API.

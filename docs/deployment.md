@@ -23,7 +23,7 @@ scripts/install.sh
 The installer:
 
 1. Installs Docker on Linux when missing.
-2. Installs Tailscale on Linux when missing.
+2. Checks Tailscale, skips setup when already connected, or installs/authenticates when needed.
 3. Creates `ecosystem/atlas.yaml` if missing.
 4. Rotates placeholder local secrets in `.env`.
 5. Clones upstream Honcho into `vendor/honcho`.
