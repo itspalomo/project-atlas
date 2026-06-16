@@ -33,6 +33,10 @@ Performed workouts use:
 
 Use `externalId` whenever the source has a stable identifier, such as a HealthKit workout UUID or local mobile id. Atlas upserts by `userId + source + externalId`, then replaces child exercises and sets so retries are safe.
 
+## Agent Chat Context
+
+When an agent has the `training` skill, Atlas includes a bounded deterministic context snapshot in the Hermes chat request. The snapshot contains recent user-scoped planned workouts, performed workouts, exercises, and sets. Hermes does not receive direct database access; Atlas decides which structured facts are exposed for the requesting user and agent.
+
 ## Privacy
 
 Training records are user-scoped. The iOS bridge can write only for the paired user, and shared agents should receive training facts only when the user intentionally shares them or when Atlas records an active grant.

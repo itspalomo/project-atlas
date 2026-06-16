@@ -1,6 +1,7 @@
 import { Pool } from "pg";
 import { AtlasConfig } from "../config.js";
 import { recordAuditLog } from "../audit/auditLog.js";
+import { buildDeterministicContext, DeterministicContext } from "./deterministicContext.js";
 
 export type AgentReplyInput = {
   agentId: string;
@@ -45,6 +46,22 @@ export async function generateAgentReply(
     };
   }
 
+  const deterministicContext = await safeBuildDeterministicContext(pool, input, agent);
+  const messages = [
+    ...(deterministicContext.content
+      ? [
+          {
+            role: "system",
+            content: deterministicContext.content
+          }
+        ]
+      : []),
+    {
+      role: "user",
+      content: input.text
+    }
+  ];
+
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -52,18 +69,14 @@ export async function generateAgentReply(
     },
     body: JSON.stringify({
       model: config.hermesModel,
-      messages: [
-        {
-          role: "user",
-          content: input.text
-        }
-      ],
+      messages,
       metadata: {
         atlas_user_id: input.userId,
         atlas_agent_id: input.agentId,
         atlas_hermes_profile: agent.hermesProfile,
         atlas_honcho_workspace: agent.honchoWorkspace,
         atlas_skills: agent.skills,
+        atlas_context_sections: deterministicContext.sections,
         atlas_conversation_id: input.conversationId,
         atlas_channel: input.channel
       }
@@ -93,6 +106,30 @@ export async function generateAgentReply(
     runtime: "hermes",
     text: payload.choices?.[0]?.message?.content?.trim() || "Hermes returned an empty response."
   };
+}
+
+async function safeBuildDeterministicContext(
+  pool: Pool,
+  input: AgentReplyInput,
+  agent: AgentRuntimeConfig
+): Promise<DeterministicContext> {
+  try {
+    return await buildDeterministicContext(pool, {
+      userId: input.userId,
+      agentId: input.agentId,
+      skills: agent.skills
+    });
+  } catch (error) {
+    await recordAuditLog(pool, {
+      actorUserId: input.userId,
+      action: "runtime.context.build_failed",
+      subjectType: "agent",
+      subjectId: input.agentId,
+      metadata: { error: error instanceof Error ? error.message : String(error) }
+    });
+
+    return { content: "", sections: [] };
+  }
 }
 
 type AgentRuntimeConfig = {
