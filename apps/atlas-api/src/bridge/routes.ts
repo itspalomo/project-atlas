@@ -51,6 +51,44 @@ const locationSignalSchema = z.object({
   source: z.enum(["ios", "manual"])
 });
 
+const nutritionSourceSchema = z.enum(["ios_bridge", "manual", "third_party_app", "photo_estimate", "nutrition_label"]);
+
+const nutritionDailySummarySchema = z.object({
+  userId: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  source: nutritionSourceSchema,
+  energyKcal: z.number().nonnegative().optional(),
+  proteinG: z.number().nonnegative().optional(),
+  carbsG: z.number().nonnegative().optional(),
+  fatG: z.number().nonnegative().optional(),
+  fiberG: z.number().nonnegative().optional(),
+  sugarG: z.number().nonnegative().optional(),
+  sodiumMg: z.number().nonnegative().optional(),
+  waterMl: z.number().nonnegative().optional(),
+  mealCount: z.number().int().nonnegative().optional(),
+  confidence: z.number().min(0).max(1).optional(),
+  notes: z.string().max(2000).optional(),
+  generatedAt: z.string().datetime()
+});
+
+const nutritionMealEntrySchema = z.object({
+  userId: z.string().min(1),
+  consumedAt: z.string().datetime(),
+  mealType: z.enum(["breakfast", "lunch", "dinner", "snack", "unknown"]).default("unknown"),
+  source: nutritionSourceSchema,
+  description: z.string().max(500).optional(),
+  energyKcal: z.number().nonnegative().optional(),
+  proteinG: z.number().nonnegative().optional(),
+  carbsG: z.number().nonnegative().optional(),
+  fatG: z.number().nonnegative().optional(),
+  fiberG: z.number().nonnegative().optional(),
+  sugarG: z.number().nonnegative().optional(),
+  sodiumMg: z.number().nonnegative().optional(),
+  waterMl: z.number().nonnegative().optional(),
+  confidence: z.number().min(0).max(1).optional(),
+  metadata: z.record(z.string(), z.unknown()).default({})
+});
+
 const approvalDecisionSchema = z.object({
   decision: z.enum(["approved", "rejected"]),
   decidedByUserId: z.string().min(1),
@@ -217,6 +255,141 @@ export async function registerBridgeRoutes(
       });
 
       return reply.code(202).send({ ok: true });
+    } catch (error) {
+      return bridgeError(reply, error);
+    }
+  });
+
+  app.post("/bridge/v1/nutrition/daily-summary", async (request, reply) => {
+    try {
+      await authenticateBridgeRequest(request, pool, config);
+      const body = nutritionDailySummarySchema.parse(request.body);
+
+      await pool.query(
+        `
+          insert into nutrition_daily_summaries (
+            user_id,
+            summary_date,
+            source,
+            energy_kcal,
+            protein_g,
+            carbs_g,
+            fat_g,
+            fiber_g,
+            sugar_g,
+            sodium_mg,
+            water_ml,
+            meal_count,
+            confidence,
+            notes,
+            generated_at
+          )
+          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+          on conflict (user_id, summary_date)
+          do update set
+            source = excluded.source,
+            energy_kcal = excluded.energy_kcal,
+            protein_g = excluded.protein_g,
+            carbs_g = excluded.carbs_g,
+            fat_g = excluded.fat_g,
+            fiber_g = excluded.fiber_g,
+            sugar_g = excluded.sugar_g,
+            sodium_mg = excluded.sodium_mg,
+            water_ml = excluded.water_ml,
+            meal_count = excluded.meal_count,
+            confidence = excluded.confidence,
+            notes = excluded.notes,
+            generated_at = excluded.generated_at,
+            updated_at = now()
+        `,
+        [
+          body.userId,
+          body.date,
+          body.source,
+          body.energyKcal ?? null,
+          body.proteinG ?? null,
+          body.carbsG ?? null,
+          body.fatG ?? null,
+          body.fiberG ?? null,
+          body.sugarG ?? null,
+          body.sodiumMg ?? null,
+          body.waterMl ?? null,
+          body.mealCount ?? null,
+          body.confidence ?? null,
+          body.notes ?? null,
+          body.generatedAt
+        ]
+      );
+
+      await recordAuditLog(pool, {
+        actorUserId: body.userId,
+        action: "bridge.nutrition_daily_summary.upserted",
+        subjectType: "nutrition_daily_summary",
+        subjectId: body.date,
+        metadata: { source: body.source, confidence: body.confidence ?? null }
+      });
+
+      return reply.code(202).send({ ok: true });
+    } catch (error) {
+      return bridgeError(reply, error);
+    }
+  });
+
+  app.post("/bridge/v1/nutrition/meal-entry", async (request, reply) => {
+    try {
+      await authenticateBridgeRequest(request, pool, config);
+      const body = nutritionMealEntrySchema.parse(request.body);
+
+      const result = await pool.query<{ id: string }>(
+        `
+          insert into nutrition_meal_entries (
+            user_id,
+            consumed_at,
+            meal_type,
+            source,
+            description,
+            energy_kcal,
+            protein_g,
+            carbs_g,
+            fat_g,
+            fiber_g,
+            sugar_g,
+            sodium_mg,
+            water_ml,
+            confidence,
+            metadata
+          )
+          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::jsonb)
+          returning id
+        `,
+        [
+          body.userId,
+          body.consumedAt,
+          body.mealType,
+          body.source,
+          body.description ?? null,
+          body.energyKcal ?? null,
+          body.proteinG ?? null,
+          body.carbsG ?? null,
+          body.fatG ?? null,
+          body.fiberG ?? null,
+          body.sugarG ?? null,
+          body.sodiumMg ?? null,
+          body.waterMl ?? null,
+          body.confidence ?? null,
+          JSON.stringify(body.metadata)
+        ]
+      );
+
+      await recordAuditLog(pool, {
+        actorUserId: body.userId,
+        action: "bridge.nutrition_meal_entry.created",
+        subjectType: "nutrition_meal_entry",
+        subjectId: result.rows[0]?.id,
+        metadata: { source: body.source, mealType: body.mealType, confidence: body.confidence ?? null }
+      });
+
+      return reply.code(201).send({ ok: true, id: result.rows[0]?.id });
     } catch (error) {
       return bridgeError(reply, error);
     }

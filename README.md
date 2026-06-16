@@ -8,9 +8,10 @@ Atlas is self-serve. A local `ecosystem/atlas.yaml` file defines the users, thei
 
 - Docker Compose for Atlas API, PostgreSQL, self-hosted Honcho, and Hermes.
 - Tailscale Funnel setup for the public WhatsApp webhook edge.
-- PostgreSQL schema for identities, agents, allowlisted channels, approvals, audit logs, health summaries, calendar availability, reminders, and goals.
+- PostgreSQL schema for identities, agents, allowlisted channels, approvals, audit logs, health summaries, nutrition intake, calendar availability, reminders, and goals.
 - WhatsApp Business Cloud API webhook scaffold with signature verification and sender allowlisting.
 - iOS bridge API scaffold for privacy-preserving HealthKit, calendar availability, semantic location, reminders, and approvals.
+- Lightweight nutrition intake bridge for calories, macros, fiber, hydration, and source confidence.
 - Self-serve ecosystem config generator.
 - Hermes profile and Honcho config generation from the local ecosystem config.
 - Honcho self-hosting bootstrap wired into the default installer.
@@ -55,3 +56,4 @@ npm run dev --workspace @project-atlas/atlas-api
 - [Memory Isolation](docs/memory-isolation.md)
 - [WhatsApp](docs/whatsapp.md)
 - [iOS Bridge](docs/ios-bridge.md)
+- [Nutrition Model](docs/nutrition-model.md)

@@ -6,10 +6,17 @@ Responsibilities:
 
 - Read HealthKit locally from iPhone and Apple Watch sources.
 - Summarize daily health metrics before sending to Atlas.
+- Summarize nutrition intake from local/manual sources before sending to Atlas.
 - Read calendars locally and send busy blocks or user-approved event details.
 - Create Apple Reminders only after approval.
 - Deliver native notifications using content produced by Atlas.
 - Optionally classify location locally into semantic places such as `gym`, `home`, or `work`.
+
+Nutrition behavior:
+
+- Send daily calories, macros, fiber, hydration, and source confidence when available.
+- Send meal entries only when useful for coaching context.
+- Keep raw meal photos, labels, and third-party app exports local unless the user explicitly shares them.
 
 Health data source behavior:
 

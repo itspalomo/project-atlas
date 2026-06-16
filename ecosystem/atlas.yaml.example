@@ -45,6 +45,7 @@ agents:
       - reminders
       - planning
       - health
+      - nutrition
     prompt: |
       # Household Atlas
 

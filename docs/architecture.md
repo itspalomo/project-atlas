@@ -54,6 +54,7 @@ PostgreSQL is the source of truth for facts:
 
 - Identity records
 - Health summaries
+- Nutrition intake summaries
 - Calendar busy blocks
 - Reminders
 - Goals
