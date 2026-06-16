@@ -15,6 +15,11 @@ FUNNEL_PORT="${TAILSCALE_FUNNEL_PORT:-443}"
 FUNNEL_PATH="${TAILSCALE_FUNNEL_PATH:-/webhooks/whatsapp}"
 FUNNEL_TARGET="${TAILSCALE_FUNNEL_TARGET:-http://127.0.0.1:${ATLAS_API_PORT:-3000}}"
 
+SUDO=""
+if [[ "$(id -u)" -ne 0 ]]; then
+  SUDO="sudo"
+fi
+
 is_tailscale_up() {
   command -v tailscale >/dev/null 2>&1 \
     && tailscale status --json 2>/dev/null \
@@ -47,7 +52,7 @@ fi
 
 case "${1:-on}" in
   on)
-    sudo tailscale funnel \
+    $SUDO tailscale funnel \
       --bg \
       --yes \
       --https="$FUNNEL_PORT" \
@@ -62,7 +67,7 @@ case "${1:-on}" in
     fi
     ;;
   off)
-    sudo tailscale funnel \
+    $SUDO tailscale funnel \
       --https="$FUNNEL_PORT" \
       --set-path="$FUNNEL_PATH" \
       off

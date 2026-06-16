@@ -10,15 +10,40 @@ Target host:
 
 ## One-Command Bootstrap
 
-On the VPS:
+Once the repository is public or otherwise reachable from the VPS, run:
 
 ```bash
-git clone git@github.com:itspalomo/project-atlas.git
-cd project-atlas
-cp .env.example .env
-$EDITOR .env
-scripts/install.sh
+curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/scripts/bootstrap-vps.sh | sudo bash
 ```
+
+To pass common non-interactive settings up front:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/scripts/bootstrap-vps.sh \
+  | sudo env \
+      TAILSCALE_AUTH_KEY=tskey-auth-... \
+      TAILSCALE_HOSTNAME=project-atlas \
+      WHATSAPP_VERIFY_TOKEN=replace-me \
+      bash
+```
+
+The bootstrap script installs base package dependencies, clones or updates Atlas at `/opt/project-atlas`, creates `.env` from `.env.example` when missing, copies supported environment overrides into `.env`, installs `/usr/local/bin/atlas`, and runs the Atlas installer.
+
+After editing `.env` or `ecosystem/atlas.yaml`, run `atlas apply` to rerun migrations, converge seeded identities/agents/allowlists, regenerate Hermes profile assets, and restart Atlas API.
+
+Use the CLI after bootstrap:
+
+```bash
+atlas status
+atlas configure
+atlas apply
+atlas logs atlas-api
+atlas webhook
+atlas runtime
+atlas update
+```
+
+For a manual checkout, run `scripts/atlasctl install` from the repository root.
 
 The installer:
 
@@ -32,6 +57,13 @@ The installer:
 8. Seeds users, agents, channel allowlists, and membership from `ecosystem/atlas.yaml`.
 9. Generates Hermes profile assets, skill manifests, and Honcho configs.
 10. Starts Atlas API.
+
+Bootstrap environment knobs:
+
+- `ATLAS_REPO_URL`: Git repository URL, default `https://github.com/itspalomo/project-atlas.git`.
+- `ATLAS_BRANCH`: Git branch, default `main`.
+- `ATLAS_DIR`: Install directory, default `/opt/project-atlas`.
+- `ATLAS_RUN_INSTALL`: Set to `false` to only clone/update, create `.env`, and install the CLI.
 
 ## Idempotency
 

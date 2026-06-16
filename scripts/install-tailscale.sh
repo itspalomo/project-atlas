@@ -3,6 +3,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+SUDO=""
+if [[ "$(id -u)" -ne 0 ]]; then
+  SUDO="sudo"
+fi
+
 is_tailscale_up() {
   command -v tailscale >/dev/null 2>&1 \
     && tailscale status --json 2>/dev/null \
@@ -15,16 +20,16 @@ start_tailscaled() {
   fi
 
   if command -v systemctl >/dev/null 2>&1; then
-    sudo systemctl enable --now tailscaled >/dev/null 2>&1 || true
+    $SUDO systemctl enable --now tailscaled >/dev/null 2>&1 || true
   elif command -v service >/dev/null 2>&1; then
-    sudo service tailscaled start >/dev/null 2>&1 || true
+    $SUDO service tailscaled start >/dev/null 2>&1 || true
   fi
 }
 
 if command -v tailscale >/dev/null 2>&1; then
   echo "Tailscale is already installed."
 else
-  curl -fsSL https://tailscale.com/install.sh | sh
+  curl -fsSL https://tailscale.com/install.sh | $SUDO sh
 fi
 
 start_tailscaled
@@ -40,7 +45,7 @@ if [[ -f "$ROOT_DIR/.env" ]]; then
 fi
 
 if [[ -n "${TAILSCALE_AUTH_KEY:-}" ]]; then
-  sudo tailscale up \
+  $SUDO tailscale up \
     --auth-key "$TAILSCALE_AUTH_KEY" \
     --hostname "${TAILSCALE_HOSTNAME:-project-atlas}" \
     --ssh

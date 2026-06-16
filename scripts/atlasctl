@@ -1,24 +1,157 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SOURCE="${BASH_SOURCE[0]}"
+while [[ -L "$SOURCE" ]]; do
+  SOURCE_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ "$SOURCE" != /* ]] && SOURCE="$SOURCE_DIR/$SOURCE"
+done
+
+ROOT_DIR="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
 cd "$ROOT_DIR"
 
-case "${1:-}" in
-  up)
+if [[ -f .env ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source .env
+  set +a
+fi
+
+command="${1:-help}"
+shift || true
+
+usage() {
+  cat <<'USAGE'
+Usage: atlas <command> [args]
+
+Install and config:
+  install       Run the full Atlas VPS installer
+  configure    Open .env and ecosystem/atlas.yaml for editing
+  init         Create local ecosystem/atlas.yaml
+  apply        Apply ecosystem config, migrations, seeds, and profiles
+  install-cli  Install/update /usr/local/bin/atlas symlink
+  doctor       Check local runtime prerequisites and service status
+
+Services:
+  up|start     Start Atlas base services
+  down|stop    Stop services
+  restart      Restart Atlas API
+  status       Show Compose status and API health
+  logs [svc]   Tail logs, optionally for one service
+  update       Pull latest repo changes and rerun install
+
+Data/runtime:
+  migrate      Run Postgres migrations
+  seed         Seed users, agents, and WhatsApp allowlist
+  profiles     Generate Hermes SOUL.md, skills.json, and honcho.json files
+  runtime      Start Hermes runtime profile
+  runtime-off  Stop Hermes runtime profile
+  honcho       Clone/start self-hosted Honcho
+
+Webhook:
+  webhook       Publish WhatsApp webhook through Tailscale Funnel
+  webhook-status
+                Show Tailscale Funnel status
+  webhook-off   Turn off the configured Funnel webhook path
+USAGE
+}
+
+ensure_env() {
+  if [[ ! -f .env && -f .env.example ]]; then
+    cp .env.example .env
+    chmod 600 .env
+    echo "Created .env from .env.example."
+  fi
+}
+
+api_health() {
+  local port
+  port="$(grep -E '^ATLAS_API_PORT=' .env 2>/dev/null | cut -d= -f2- || true)"
+  port="${port:-3000}"
+
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsS "http://127.0.0.1:${port}/health" || true
+    echo
+    curl -fsS "http://127.0.0.1:${port}/ready" || true
+    echo
+  fi
+}
+
+case "$command" in
+  install)
+    scripts/install.sh
+    ;;
+  configure|config)
+    ensure_env
+    "${EDITOR:-nano}" .env
+    scripts/init-ecosystem.sh
+    "${EDITOR:-nano}" "${ATLAS_ECOSYSTEM_CONFIG:-ecosystem/atlas.yaml}"
+    echo "Run 'atlas apply' to apply identity, agent, memory, and profile changes."
+    ;;
+  install-cli)
+    if [[ "$(uname -s)" != "Linux" ]]; then
+      echo "install-cli is intended for Linux VPS hosts."
+      exit 0
+    fi
+    if [[ "$(id -u)" -eq 0 ]]; then
+      ln -sf "$ROOT_DIR/scripts/atlasctl" /usr/local/bin/atlas
+    else
+      sudo ln -sf "$ROOT_DIR/scripts/atlasctl" /usr/local/bin/atlas
+    fi
+    echo "Installed atlas CLI at /usr/local/bin/atlas."
+    ;;
+  doctor)
+    echo "Atlas root: $ROOT_DIR"
+    [[ -f .env ]] && echo ".env: present" || echo ".env: missing"
+    [[ -f "${ATLAS_ECOSYSTEM_CONFIG:-ecosystem/atlas.yaml}" ]] && echo "ecosystem config: present" || echo "ecosystem config: missing"
+    command -v git >/dev/null 2>&1 && git --version || echo "git: missing"
+    command -v docker >/dev/null 2>&1 && docker --version || echo "docker: missing"
+    docker compose version 2>/dev/null || echo "docker compose: missing"
+    if command -v tailscale >/dev/null 2>&1; then
+      tailscale status --json 2>/dev/null | sed -n 's/.*"BackendState"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/tailscale: \1/p' | head -n 1
+    else
+      echo "tailscale: missing"
+    fi
+    docker compose ps 2>/dev/null || true
+    api_health
+    ;;
+  up|start)
     docker compose up -d --build
     ;;
-  down)
+  down|stop)
     docker compose down
     ;;
+  restart)
+    docker compose up -d --build atlas-api
+    ;;
+  status)
+    docker compose ps
+    api_health
+    ;;
   logs)
-    docker compose logs -f --tail=200 "${2:-}"
+    if [[ -n "${1:-}" ]]; then
+      docker compose logs -f --tail=200 "$1"
+    else
+      docker compose logs -f --tail=200
+    fi
+    ;;
+  update)
+    git pull --ff-only
+    scripts/install.sh
     ;;
   migrate)
     docker compose run --rm atlas-api node dist/db/migrate.js
     ;;
   seed)
     docker compose run --rm atlas-api node dist/db/seed.js
+    ;;
+  apply)
+    scripts/init-ecosystem.sh
+    docker compose run --rm atlas-api node dist/db/migrate.js
+    docker compose run --rm atlas-api node dist/db/seed.js
+    scripts/init-hermes-profiles.sh
+    docker compose up -d --build atlas-api
     ;;
   init)
     scripts/init-ecosystem.sh
@@ -33,6 +166,9 @@ case "${1:-}" in
     scripts/init-hermes-profiles.sh
     docker compose --profile runtime up -d --build hermes
     ;;
+  runtime-off)
+    docker compose --profile runtime stop hermes
+    ;;
   webhook)
     scripts/setup-tailscale-funnel.sh
     ;;
@@ -42,25 +178,13 @@ case "${1:-}" in
   webhook-off)
     scripts/setup-tailscale-funnel.sh off
     ;;
+  help|-h|--help)
+    usage
+    ;;
   *)
-    cat <<'USAGE'
-Usage: scripts/atlasctl <command>
-
-Commands:
-  up        Start Atlas API and Postgres
-  down      Stop services
-  logs      Tail logs
-  migrate   Run Postgres migrations
-  seed      Seed users, agents, and WhatsApp allowlist
-  init      Create local ecosystem/atlas.yaml
-  honcho    Clone and start self-hosted Honcho
-  profiles  Generate Hermes SOUL.md and honcho.json files
-  runtime   Start Hermes runtime profile
-  webhook   Publish WhatsApp webhook through Tailscale Funnel
-  webhook-status
-            Show Tailscale Funnel status
-  webhook-off
-            Turn off the configured Tailscale Funnel webhook path
-USAGE
+    echo "Unknown command: $command"
+    echo
+    usage
+    exit 1
     ;;
 esac

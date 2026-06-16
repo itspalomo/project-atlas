@@ -17,17 +17,36 @@ Atlas is self-serve. A local `ecosystem/atlas.yaml` file defines the users, thei
 - Self-serve ecosystem config generator.
 - Hermes profile and Honcho config generation from the local ecosystem config.
 - Honcho self-hosting bootstrap wired into the default installer.
+- `atlas` CLI wrapper for install, configure, apply, status, logs, runtime, webhook, and updates.
 - VPS installer script for Ubuntu 24.04 style hosts.
 
 ## Quick Start
 
+On a VPS, once this repository is public or otherwise reachable from the host:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/scripts/bootstrap-vps.sh | sudo bash
+```
+
+Then use the installed CLI:
+
+```bash
+atlas status
+atlas configure
+atlas apply
+atlas webhook
+atlas runtime
+```
+
+For a local checkout:
+
 ```bash
 cp .env.example .env
 $EDITOR .env
-scripts/install.sh
+scripts/atlasctl install
 ```
 
-The installer creates `ecosystem/atlas.yaml` if it does not exist. Edit that file to define the number of users, allowed WhatsApp identities, and shared agents for the installation.
+The installer creates `ecosystem/atlas.yaml` if it does not exist. Edit that file to define the number of users, allowed WhatsApp identities, and shared agents for the installation, then run `atlas apply` or `scripts/atlasctl apply`.
 
 For local development:
 
