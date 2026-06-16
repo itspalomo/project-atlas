@@ -10,7 +10,7 @@ scripts/init-hermes-profiles.sh
 
 The generated files are written under `data/hermes/profiles/` and are intentionally not committed:
 
-- `SOUL.md` contains the agent prompt plus enabled skill guidance.
+- `SOUL.md` contains the minimal Atlas runtime context plus enabled data capabilities.
 - `skills.json` contains the machine-readable baked-in skill manifest.
 - `honcho.json` points the profile at the configured self-hosted Honcho workspace.
 

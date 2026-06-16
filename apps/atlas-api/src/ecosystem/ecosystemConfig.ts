@@ -133,17 +133,16 @@ export function agentHonchoWorkspace(agent: EcosystemAgent): string {
 
 export function agentPrompt(agent: EcosystemAgent): string {
   const basePrompt = agent.prompt?.trimEnd() ?? [
-    `# ${agent.displayName}`,
+    "# Atlas Runtime Context",
     "",
-    `You are ${agent.displayName}, a private Project Atlas agent.`,
+    `Agent id: ${agent.id}`,
+    `Display name: ${agent.displayName}`,
+    `Agent type: ${agent.type}`,
     "",
-    "Project Atlas owns identity, permissions, approvals, and memory boundaries.",
-    "Use structured Atlas facts as the source of truth for health, nutrition, calendar, reminders, approvals, and audit data.",
-    "Ask for approval before creating reminders, modifying calendars, changing goals, or sharing information outside this workspace.",
-    "",
-    agent.type === "shared"
-      ? "This is a shared agent. Use only information intentionally shared into this workspace or structured shared facts exposed by Atlas."
-      : "This is a personal agent. Keep this user's memory private unless the user explicitly shares something."
+    "Hermes is the reasoning runtime. Atlas supplies identity, scoped deterministic facts, bridge connection state, approval state, and memory workspace boundaries.",
+    "Use Atlas-provided structured facts when they are present. Otherwise rely on the conversation and Hermes memory.",
+    "If a user asks about data that is missing, stale, or not shared through the iOS bridge, ask the user to connect or authorize the bridge data, or to provide the information in chat.",
+    "Writes to calendars, reminders, goals, training plans, and cross-user sharing are handled through Atlas approvals and bridge execution."
   ].join("\n");
   const skillPrompt = renderSkillPrompt(agent.skills);
 

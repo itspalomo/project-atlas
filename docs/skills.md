@@ -1,6 +1,6 @@
 # Skills
 
-Atlas skills are declarative capability packs for agents. They are not arbitrary code execution and they are not a security boundary by themselves.
+Atlas skills are declarative data capability packs for agents. They are not arbitrary code execution, persona templates, or a security boundary by themselves.
 
 An agent enables skills in `ecosystem/atlas.yaml`:
 
@@ -20,7 +20,9 @@ agents:
       - whatsapp
 ```
 
-During seed/profile generation Atlas validates every skill id, stores an expanded skill manifest in the agent config, appends skill guidance to `SOUL.md`, and writes `skills.json` next to the generated Hermes profile.
+During seed/profile generation Atlas validates every skill id, stores an expanded skill manifest in the agent config, appends a minimal data-capability map to `SOUL.md`, and writes `skills.json` next to the generated Hermes profile.
+
+Hermes stays responsible for the agent behavior under the hood. Atlas only tells Hermes which structured facts and bridge surfaces may be available. If a requested fact is missing, stale, or not authorized through the iOS bridge, Hermes should ask the user to connect or authorize the bridge data, or provide the information in chat.
 
 Built-in skills:
 

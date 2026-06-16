@@ -11,10 +11,11 @@ describe("skill catalog", () => {
     expect(() => validateSkillIds(["unknown"], "Agent household")).toThrow(/unknown skill unknown/);
   });
 
-  it("renders prompt guidance without leaking prompt-only fields into the manifest", () => {
+  it("renders data capability context without leaking prompt-only fields into the manifest", () => {
     const prompt = renderSkillPrompt(["health"]);
-    expect(prompt).toContain("Atlas Baked-In Skills");
-    expect(prompt).toContain("Health Summary");
+    expect(prompt).toContain("Atlas Data Capabilities");
+    expect(prompt).toContain("health: Use summarized HealthKit-derived metrics");
+    expect(prompt).toContain("If needed data is absent, ask the user to connect or authorize the iOS bridge");
 
     const manifest = skillManifestForIds(["health"]);
     expect(manifest[0]).toMatchObject({ id: "health", title: "Health Summary" });

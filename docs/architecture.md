@@ -68,6 +68,6 @@ Honcho is the memory layer for conversational and preference memory. Atlas keeps
 
 ## Skills
 
-Skills are configured per agent in `ecosystem/atlas.yaml`. Atlas validates skill ids, stores a manifest in the agent config, appends guidance to generated Hermes `SOUL.md` files, and writes a profile-local `skills.json`.
+Skills are configured per agent in `ecosystem/atlas.yaml`. Atlas validates skill ids, stores a manifest in the agent config, appends a minimal data-capability map to generated Hermes `SOUL.md` files, and writes a profile-local `skills.json`.
 
-Skills are not a prompt-only security mechanism. Identity checks, user scoping, memory boundaries, and approvals remain enforced by Atlas API and the iOS bridge.
+Skills are not a prompt-only security mechanism or persona system. Hermes remains the reasoning runtime; Atlas provides scoped facts, bridge context, and approval boundaries. Identity checks, user scoping, memory boundaries, and approvals remain enforced by Atlas API and the iOS bridge.

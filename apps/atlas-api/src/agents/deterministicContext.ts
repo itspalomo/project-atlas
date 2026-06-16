@@ -89,7 +89,7 @@ export async function buildDeterministicContext(
       "# Atlas Deterministic Context",
       "",
       `Scope: structured facts for user ${input.userId} and agent ${input.agentId}.`,
-      "Use these facts as current Atlas state. Do not infer missing planned sets, performed sets, health data, or private context.",
+      "These are the structured facts Atlas currently has. If useful facts are missing or stale, ask the user to connect or authorize the iOS bridge, or to provide the information in chat.",
       "",
       ...blocks
     ].join("\n")

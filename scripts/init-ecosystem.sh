@@ -118,13 +118,6 @@ YAML
       - location
       - memory
       - whatsapp
-    prompt: |
-      # $agent_name
-
-      You are the shared agent for this Project Atlas installation.
-
-      Coordinate only information intentionally shared with this workspace.
-      Ask for approval before creating reminders, changing calendars, changing goals, or making commitments.
 YAML
 } > "$CONFIG_ABS"
 
