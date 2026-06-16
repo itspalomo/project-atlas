@@ -73,6 +73,7 @@ Installer environment knobs:
 - `ATLAS_RUN_INSTALL`: Set to `false` to only clone/update, create `.env`, and install the CLI.
 - `ATLAS_INSTALL_CLI`: Set to `false` to skip installing the `atlas` CLI symlink.
 - `ATLAS_CLI_PATH`: Override where the `atlas` CLI symlink is installed.
+- `ATLAS_COLOR`: Installer color mode. Use `auto`, `always`, or `never`. `NO_COLOR` is also respected.
 
 ## Idempotency
 

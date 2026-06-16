@@ -5,6 +5,75 @@ ATLAS_REPO_URL="${ATLAS_REPO_URL:-https://github.com/itspalomo/project-atlas.git
 ATLAS_BRANCH="${ATLAS_BRANCH:-main}"
 ATLAS_RUN_INSTALL="${ATLAS_RUN_INSTALL:-true}"
 ATLAS_INSTALL_CLI="${ATLAS_INSTALL_CLI:-true}"
+ATLAS_COLOR="${ATLAS_COLOR:-auto}"
+
+if [[ "${ATLAS_COLOR}" == "always" ]] || { [[ "${ATLAS_COLOR}" == "auto" && -t 1 && -z "${NO_COLOR:-}" && "${TERM:-}" != "dumb" ]]; }; then
+  BOLD="$(printf '\033[1m')"
+  DIM="$(printf '\033[2m')"
+  RESET="$(printf '\033[0m')"
+  BLUE="$(printf '\033[34m')"
+  CYAN="$(printf '\033[36m')"
+  GREEN="$(printf '\033[32m')"
+  YELLOW="$(printf '\033[33m')"
+  RED="$(printf '\033[31m')"
+else
+  BOLD=""
+  DIM=""
+  RESET=""
+  BLUE=""
+  CYAN=""
+  GREEN=""
+  YELLOW=""
+  RED=""
+fi
+
+print_banner() {
+  if [[ "${ATLAS_INSTALL_BANNER_PRINTED:-}" == "true" ]]; then
+    return 0
+  fi
+
+  export ATLAS_INSTALL_BANNER_PRINTED=true
+  printf '\n%sProject Atlas Installer%s\n' "${BOLD}${BLUE}" "$RESET"
+  printf '%sPrivate Hermes + Honcho + WhatsApp runtime setup%s\n\n' "$DIM" "$RESET"
+}
+
+section() {
+  printf '\n%s==> %s%s\n' "${BOLD}${BLUE}" "$1" "$RESET"
+}
+
+info() {
+  printf '%s    %s%s\n' "$DIM" "$*" "$RESET"
+}
+
+ok() {
+  printf '%sOK%s  %s\n' "$GREEN" "$RESET" "$*"
+}
+
+warn() {
+  printf '%sWARN%s %s\n' "$YELLOW" "$RESET" "$*"
+}
+
+fail() {
+  printf '%sERR%s  %s\n' "$RED" "$RESET" "$*" >&2
+}
+
+run_command() {
+  local label="$1"
+  shift
+
+  section "$label"
+  "$@"
+  ok "$label complete."
+}
+
+on_error() {
+  local status=$?
+  fail "Install failed with exit code $status."
+  info "Re-run with ATLAS_COLOR=never if you need plain logs."
+  exit "$status"
+}
+
+trap on_error ERR
 
 default_atlas_dir() {
   case "$(uname -s)" in
@@ -50,26 +119,37 @@ discover_root_dir() {
 }
 
 install_prerequisites() {
+  section "Checking installer prerequisites"
+
   case "$(uname -s)" in
     Linux)
       if command -v apt-get >/dev/null 2>&1; then
+        info "Installing base packages with apt-get."
         $SUDO apt-get update
         $SUDO apt-get install -y ca-certificates curl git openssl
+        ok "Base packages are installed."
       elif ! command -v git >/dev/null 2>&1; then
-        echo "git is required. Install git before running install.sh."
+        fail "git is required. Install git before running install.sh."
         exit 1
+      else
+        ok "git is available."
       fi
       ;;
     Darwin)
       if ! command -v git >/dev/null 2>&1; then
-        echo "git is required. Install Xcode Command Line Tools with: xcode-select --install"
+        fail "git is required. Install Xcode Command Line Tools with: xcode-select --install"
         exit 1
+      else
+        ok "git is available."
+        info "Skipping Linux package setup on macOS."
       fi
       ;;
     *)
       if ! command -v git >/dev/null 2>&1; then
-        echo "git is required. Install git before running install.sh."
+        fail "git is required. Install git before running install.sh."
         exit 1
+      else
+        ok "git is available."
       fi
       ;;
   esac
@@ -105,11 +185,12 @@ configure_install_privileges() {
   fi
 
   if ! command -v sudo >/dev/null 2>&1; then
-    echo "$writable_path is not writable and sudo is not installed."
+    fail "$writable_path is not writable and sudo is not installed."
     exit 1
   fi
 
   INSTALL_SUDO="sudo"
+  info "Using sudo for checkout writes under $writable_path."
 }
 
 set_env_if_present() {
@@ -125,9 +206,13 @@ set_env_if_present() {
   else
     printf '%s=%s\n' "$key" "$value" >> .env
   fi
+
+  ENV_OVERRIDES_APPLIED=$((ENV_OVERRIDES_APPLIED + 1))
 }
 
 apply_env_overrides() {
+  ENV_OVERRIDES_APPLIED=0
+
   for key in \
     NODE_ENV \
     LOG_LEVEL \
@@ -171,17 +256,23 @@ apply_env_overrides() {
     TAILSCALE_FUNNEL_TARGET; do
     set_env_if_present "$key"
   done
+
+  if [[ "$ENV_OVERRIDES_APPLIED" -gt 0 ]]; then
+    ok "Applied $ENV_OVERRIDES_APPLIED environment override(s) to .env."
+  else
+    info "No environment overrides were provided."
+  fi
 }
 
 print_checkout_ready() {
+  section "Checkout ready"
+  ok "Atlas checkout is ready."
+
+  printf '\n%sProject directory:%s\n  %s\n' "${BOLD}${CYAN}" "$RESET" "$ATLAS_DIR"
+
+  warn "Install was skipped because ATLAS_RUN_INSTALL=$ATLAS_RUN_INSTALL."
+  printf '\n%sRun this when ready:%s\n' "${BOLD}${CYAN}" "$RESET"
   cat <<MSG
-Atlas checkout is ready.
-
-Project directory:
-  $ATLAS_DIR
-
-Install was skipped because ATLAS_RUN_INSTALL=$ATLAS_RUN_INSTALL.
-Run this when ready:
   cd "$ATLAS_DIR"
   scripts/install.sh
 MSG
@@ -191,25 +282,32 @@ clone_or_update_checkout() {
   install_prerequisites
   configure_install_privileges
 
+  section "Preparing Atlas checkout"
+  info "Repository: $ATLAS_REPO_URL"
+  info "Branch: $ATLAS_BRANCH"
+  info "Directory: $ATLAS_DIR"
+
   $INSTALL_SUDO mkdir -p "$(dirname "$ATLAS_DIR")"
 
   if [[ -d "$ATLAS_DIR/.git" ]]; then
-    echo "Updating existing Atlas checkout at $ATLAS_DIR."
+    info "Updating existing checkout."
     $INSTALL_SUDO git -C "$ATLAS_DIR" fetch origin "$ATLAS_BRANCH"
     $INSTALL_SUDO git -C "$ATLAS_DIR" checkout "$ATLAS_BRANCH"
     $INSTALL_SUDO git -C "$ATLAS_DIR" pull --ff-only origin "$ATLAS_BRANCH"
   elif [[ -e "$ATLAS_DIR" ]]; then
-    echo "$ATLAS_DIR exists but is not a git checkout."
-    echo "Set ATLAS_DIR to another path or remove the existing directory."
+    fail "$ATLAS_DIR exists but is not a git checkout."
+    info "Set ATLAS_DIR to another path or remove the existing directory."
     exit 1
   else
-    echo "Cloning Atlas into $ATLAS_DIR."
+    info "Cloning repository."
     $INSTALL_SUDO git clone --branch "$ATLAS_BRANCH" "$ATLAS_REPO_URL" "$ATLAS_DIR"
   fi
 
   if [[ "$INSTALL_SUDO" == "sudo" && -n "${SUDO_USER:-}" && "$SUDO_USER" != "root" ]]; then
     $INSTALL_SUDO chown -R "$SUDO_USER":"$SUDO_USER" "$ATLAS_DIR"
   fi
+
+  ok "Checkout is ready."
 }
 
 install_from_checkout() {
@@ -217,15 +315,23 @@ install_from_checkout() {
 
   cd "$root_dir"
 
+  section "Preparing local configuration"
+  info "Project directory: $root_dir"
+
   if [[ ! -f .env ]]; then
     cp .env.example .env
     chmod 600 .env
+    ok "Created .env from .env.example."
+  else
+    ok ".env already exists."
   fi
 
   apply_env_overrides
 
   if [[ "$ATLAS_INSTALL_CLI" == "true" ]]; then
-    scripts/atlasctl install-cli
+    run_command "Installing atlas CLI" scripts/atlasctl install-cli
+  else
+    warn "Skipping atlas CLI install because ATLAS_INSTALL_CLI=$ATLAS_INSTALL_CLI."
   fi
 
   if [[ "$ATLAS_RUN_INSTALL" != "true" ]]; then
@@ -234,39 +340,51 @@ install_from_checkout() {
     return 0
   fi
 
-  scripts/init-ecosystem.sh
+  run_command "Initializing ecosystem config" scripts/init-ecosystem.sh
 
   if [[ "$(uname -s)" == "Linux" ]]; then
-    scripts/install-system-deps.sh
-    scripts/install-tailscale.sh
+    run_command "Installing Linux system dependencies" scripts/install-system-deps.sh
+    run_command "Checking Tailscale" scripts/install-tailscale.sh
+  else
+    section "Checking host services"
+    info "Skipping Linux system dependency and Tailscale setup on $(uname -s)."
   fi
 
   if grep -Eq 'change-me-generate-with-openssl|POSTGRES_PASSWORD=$|ATLAS_BRIDGE_API_KEY=$|WHATSAPP_VERIFY_TOKEN=$' .env; then
-    scripts/rotate-local-secrets.sh
+    run_command "Rotating local placeholder secrets" scripts/rotate-local-secrets.sh
+  else
+    section "Checking local secrets"
+    ok "Local secrets are already populated."
   fi
 
-  scripts/install-honcho.sh --prepare
+  run_command "Preparing self-hosted Honcho" scripts/install-honcho.sh --prepare
 
-  docker compose up -d --build postgres honcho-api honcho-deriver
-  docker compose build atlas-api
-  docker compose run --rm atlas-api node dist/db/migrate.js
-  docker compose run --rm atlas-api node dist/db/seed.js
-  scripts/init-hermes-profiles.sh
-  docker compose up -d --build atlas-api
+  run_command "Starting data and memory services" docker compose up -d --build postgres honcho-api honcho-deriver
+  run_command "Building Atlas API" docker compose build atlas-api
+  run_command "Applying database migrations" docker compose run --rm atlas-api node dist/db/migrate.js
+  run_command "Seeding users, agents, and allowlists" docker compose run --rm atlas-api node dist/db/seed.js
+  run_command "Generating Hermes profiles" scripts/init-hermes-profiles.sh
+  run_command "Starting Atlas API" docker compose up -d --build atlas-api
 
+  section "Install complete"
+  ok "Project Atlas base services are running."
+
+  printf '\n%sNext steps:%s\n' "${BOLD}${CYAN}" "$RESET"
   cat <<'MSG'
-Project Atlas base services are running.
-
-Next steps:
-1. Fill WhatsApp Cloud API values in .env.
-2. Publish the webhook through Tailscale Funnel with: atlas webhook
-   If the global CLI is not installed yet, run: scripts/atlasctl webhook
-3. Use the printed Funnel URL as the Meta webhook callback URL.
-4. Start Hermes with: atlas runtime
-   If the global CLI is not installed yet, run: scripts/atlasctl runtime
+  1. Fill WhatsApp Cloud API values in .env.
+  2. Publish the webhook through Tailscale Funnel:
+     atlas webhook
+     If the global CLI is not installed yet:
+     scripts/atlasctl webhook
+  3. Use the printed Funnel URL as the Meta webhook callback URL.
+  4. Start Hermes:
+     atlas runtime
+     If the global CLI is not installed yet:
+     scripts/atlasctl runtime
 MSG
 }
 
+print_banner
 root_dir="$(discover_root_dir || true)"
 
 if [[ -z "$root_dir" ]]; then
@@ -281,7 +399,9 @@ if [[ -z "$root_dir" ]]; then
   apply_env_overrides
 
   if [[ "$ATLAS_INSTALL_CLI" == "true" ]]; then
-    scripts/atlasctl install-cli
+    run_command "Installing atlas CLI" scripts/atlasctl install-cli
+  else
+    warn "Skipping atlas CLI install because ATLAS_INSTALL_CLI=$ATLAS_INSTALL_CLI."
   fi
 
   if [[ "$ATLAS_RUN_INSTALL" != "true" ]]; then
