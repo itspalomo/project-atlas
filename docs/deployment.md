@@ -91,6 +91,8 @@ The installer is safe to rerun:
 
 The local ecosystem file controls identity and routing:
 
+If `ecosystem/atlas.yaml` does not exist, the installer opens an onboarding questionnaire. It asks for allowed users, WhatsApp numbers, shared or personal agents, Hermes profile names, optional per-agent Hermes endpoint overrides, Honcho memory workspaces, and enabled Atlas bridge capabilities. It does not ask for OpenAI or LLM provider keys; those stay with the Hermes/runtime auth provider.
+
 ```yaml
 users:
   - id: parent-one

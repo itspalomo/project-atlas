@@ -391,20 +391,26 @@ if [[ -z "$root_dir" ]]; then
   clone_or_update_checkout
   cd "$ATLAS_DIR"
 
-  if [[ ! -f .env ]]; then
-    cp .env.example .env
-    chmod 600 .env
-  fi
-
-  apply_env_overrides
-
-  if [[ "$ATLAS_INSTALL_CLI" == "true" ]]; then
-    run_command "Installing atlas CLI" scripts/atlasctl install-cli
-  else
-    warn "Skipping atlas CLI install because ATLAS_INSTALL_CLI=$ATLAS_INSTALL_CLI."
-  fi
-
   if [[ "$ATLAS_RUN_INSTALL" != "true" ]]; then
+    section "Preparing local configuration"
+    info "Project directory: $ATLAS_DIR"
+
+    if [[ ! -f .env ]]; then
+      cp .env.example .env
+      chmod 600 .env
+      ok "Created .env from .env.example."
+    else
+      ok ".env already exists."
+    fi
+
+    apply_env_overrides
+
+    if [[ "$ATLAS_INSTALL_CLI" == "true" ]]; then
+      run_command "Installing atlas CLI" scripts/atlasctl install-cli
+    else
+      warn "Skipping atlas CLI install because ATLAS_INSTALL_CLI=$ATLAS_INSTALL_CLI."
+    fi
+
     print_checkout_ready
     exit 0
   fi
