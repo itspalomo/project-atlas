@@ -110,10 +110,22 @@ async function handleToolCall(reply: FastifyReply, pool: Pool, id: JsonRpcId, pa
     return reply.send(jsonRpcToolError(id, "The requested user is not allowed to use that agent."));
   }
 
+  const enabledCapabilities = await loadAgentCapabilities(pool, args.data.agentId);
+  const requestedCapabilities = args.data.capabilities.length > 0 ? args.data.capabilities : enabledCapabilities;
+  const disallowedCapabilities = requestedCapabilities.filter((capability) => !enabledCapabilities.includes(capability));
+  if (disallowedCapabilities.length > 0) {
+    return reply.send(
+      jsonRpcToolError(
+        id,
+        `The requested capability is not enabled for this agent: ${disallowedCapabilities.join(", ")}.`
+      )
+    );
+  }
+
   const context = await buildDeterministicContext(pool, {
     userId: args.data.userId,
     agentId: args.data.agentId,
-    skills: args.data.capabilities
+    skills: requestedCapabilities
   });
 
   return reply.send(
@@ -126,9 +138,32 @@ async function handleToolCall(reply: FastifyReply, pool: Pool, id: JsonRpcId, pa
             "Atlas has no deterministic structured context for that user, agent, and capability set yet."
         }
       ],
+      structuredContent: {
+        capabilities: requestedCapabilities,
+        sections: context.sections
+      },
       isError: false
     })
   );
+}
+
+async function loadAgentCapabilities(pool: Pool, agentId: string): Promise<string[]> {
+  const result = await pool.query<{
+    config: {
+      skills?: unknown;
+    };
+  }>(
+    `
+      select config
+      from agents
+      where id = $1
+      limit 1
+    `,
+    [agentId]
+  );
+  const skills = result.rows[0]?.config.skills;
+
+  return Array.isArray(skills) ? skills.filter((skill): skill is string => typeof skill === "string") : [];
 }
 
 function atlasGetContextTool(): Record<string, unknown> {

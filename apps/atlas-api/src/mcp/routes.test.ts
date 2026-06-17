@@ -7,7 +7,7 @@ import { registerMcpRoutes } from "./routes.js";
 describe("Atlas MCP routes", () => {
   it("requires the MCP bearer token in production", async () => {
     const app = fastify();
-    await registerMcpRoutes(app, fakePool(), config({ nodeEnv: "production", mcpKey: "secret" }));
+    await registerMcpRoutes(app, fakePool({ capabilities: ["health"] }), config({ nodeEnv: "production", mcpKey: "secret" }));
 
     const response = await app.inject({
       method: "POST",
@@ -46,7 +46,7 @@ describe("Atlas MCP routes", () => {
 
   it("returns scoped deterministic context for an authorized user and agent", async () => {
     const app = fastify();
-    await registerMcpRoutes(app, fakePool(), config({ nodeEnv: "production", mcpKey: "secret" }));
+    await registerMcpRoutes(app, fakePool({ capabilities: ["health"] }), config({ nodeEnv: "production", mcpKey: "secret" }));
 
     const response = await app.inject({
       method: "POST",
@@ -72,7 +72,39 @@ describe("Atlas MCP routes", () => {
 
     expect(response.statusCode).toBe(200);
     expect(body.result.isError).toBe(false);
+    expect(body.result.structuredContent.capabilities).toEqual(["health"]);
     expect(body.result.content[0].text).toContain("no deterministic structured context");
+  });
+
+  it("rejects capabilities that are not enabled for the agent", async () => {
+    const app = fastify();
+    await registerMcpRoutes(app, fakePool({ capabilities: ["health"] }), config({ nodeEnv: "production", mcpKey: "secret" }));
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/mcp",
+      headers: {
+        authorization: "Bearer secret"
+      },
+      payload: {
+        jsonrpc: "2.0",
+        id: "call",
+        method: "tools/call",
+        params: {
+          name: "atlas_get_context",
+          arguments: {
+            userId: "user-one",
+            agentId: "household",
+            capabilities: ["training"]
+          }
+        }
+      }
+    });
+    const body = response.json();
+
+    expect(response.statusCode).toBe(200);
+    expect(body.result.isError).toBe(true);
+    expect(body.result.content[0].text).toContain("not enabled");
   });
 });
 
@@ -101,8 +133,19 @@ function config(overrides: { nodeEnv: string; mcpKey?: string }): AtlasConfig {
   };
 }
 
-function fakePool(): Pool {
+function fakePool(options: { capabilities?: string[] } = {}): Pool {
   return {
-    query: async () => ({ rows: [{ "?column?": 1 }], rowCount: 1 })
+    query: async (query: unknown) => {
+      const sql = String(query);
+      if (sql.includes("from agent_memberships")) {
+        return { rows: [{ "?column?": 1 }], rowCount: 1 };
+      }
+
+      if (sql.includes("from agents")) {
+        return { rows: [{ config: { skills: options.capabilities ?? [] } }], rowCount: 1 };
+      }
+
+      return { rows: [], rowCount: 0 };
+    }
   } as unknown as Pool;
 }
