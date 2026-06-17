@@ -39,10 +39,14 @@ After install:
 ```bash
 atlas configure
 atlas apply
-atlas hermes setup
-atlas hermes gateway setup
-atlas runtime
-atlas webhook
+```
+
+Then run Hermes yourself. For the generated Docker runtime:
+
+```bash
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml --profile runtime up -d
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes hermes setup
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes hermes gateway setup
 ```
 
 ## Development

@@ -10,8 +10,6 @@ Use the `atlas` CLI for day-to-day work. It wraps the repository scripts and Doc
 | `atlas doctor` | Check Git, Docker, Tailscale, config, services, and API readiness. |
 | `atlas configure` | Edit `.env` and `ecosystem/atlas.yaml`. |
 | `atlas apply` | Rerun migrations, seed local users/agents, regenerate Atlas-managed Hermes files, restart Atlas API. |
-| `atlas hermes setup` | Run Hermes' own setup wizard inside the generated runtime container. |
-| `atlas hermes gateway setup` | Run Hermes' gateway/messaging setup inside the generated runtime container. |
 | `atlas runtime` | Generate Hermes profiles and start the Hermes runtime service. |
 | `atlas webhook` | Publish Hermes' WhatsApp Cloud webhook through Tailscale Funnel. |
 | `atlas logs atlas-api` | Tail Atlas API logs. |

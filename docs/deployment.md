@@ -121,24 +121,20 @@ agents:
 
 ## Runtime
 
-After Atlas setup, run Hermes' own setup wizard inside the generated runtime container:
+After Atlas setup, run Hermes yourself. For the generated Docker runtime:
 
 ```bash
-atlas hermes setup
-atlas hermes gateway setup
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml --profile runtime up -d
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes hermes setup
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes hermes gateway setup
 ```
 
 For isolated runtime groups, choose the service/profile explicitly:
 
 ```bash
-atlas hermes --service hermes-shared-household -p household setup
-atlas hermes --service hermes-shared-household -p household gateway setup
-```
-
-Then start or restart Hermes:
-
-```bash
-atlas runtime
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml --profile runtime config --services | grep '^hermes'
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes-shared-household hermes -p household setup
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes-shared-household hermes -p household gateway setup
 ```
 
 `scripts/init-hermes-profiles.sh` writes profile directories under `data/hermes/`. Each configured agent becomes a Hermes profile. By default, agents run in the `default` runtime group. For hard isolation, configure multiple `runtimeGroups`; Atlas will generate one Hermes service per runtime group. Each generated profile includes:

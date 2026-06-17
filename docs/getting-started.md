@@ -62,17 +62,21 @@ This runs migrations, seeds local users, agents, memberships, and optional ident
 
 ## Start Hermes
 
-Run Hermes' own setup after Atlas has generated the profiles:
+Atlas generates Hermes profile and runtime files. Run Hermes yourself after Atlas setup.
+
+For the generated Docker runtime:
 
 ```bash
-atlas hermes setup
-atlas hermes gateway setup
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml --profile runtime up -d
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes hermes setup
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes hermes gateway setup
 ```
 
-Then start or restart the runtime:
+For isolated runtime groups, list the generated Hermes services and exec into the target service:
 
 ```bash
-atlas runtime
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml --profile runtime config --services | grep '^hermes'
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec <hermes-service> hermes -p <profile> setup
 ```
 
 For WhatsApp Cloud, publish only Hermes' webhook path through Tailscale Funnel:

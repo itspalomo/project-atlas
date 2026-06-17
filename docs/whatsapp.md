@@ -21,20 +21,21 @@ Configure Hermes first for the profile or runtime group you want online:
 
 ```bash
 atlas apply
-atlas hermes setup
-atlas hermes gateway setup
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml --profile runtime up -d
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes hermes setup
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes hermes gateway setup
 ```
 
 For Hermes' personal WhatsApp bridge, Hermes also documents the direct WhatsApp wizard:
 
 ```bash
-atlas hermes whatsapp
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes hermes whatsapp
 ```
 
 Then start or restart the runtime and publish only the Hermes webhook path when the selected Hermes channel needs a public callback:
 
 ```bash
-atlas runtime
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml --profile runtime up -d
 atlas webhook
 ```
 
@@ -53,8 +54,9 @@ Keep Hermes credentials in Hermes' own profile/runtime configuration. Atlas does
 For multiple isolated runtime groups, run Hermes setup against the intended generated service/profile:
 
 ```bash
-atlas hermes --service hermes-shared-household -p household setup
-atlas hermes --service hermes-shared-household -p household gateway setup
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml --profile runtime config --services | grep '^hermes'
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes-shared-household hermes -p household setup
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes-shared-household hermes -p household gateway setup
 ```
 
 Each Hermes gateway should use its own intended channel credentials and authorization policy.
@@ -73,10 +75,10 @@ If an older install has an Atlas-managed WhatsApp allowlist block in a generated
 
 ## Personal Bridge
 
-For a personal WhatsApp session or local testing, use Hermes' own command flow through the Atlas wrapper:
+For a personal WhatsApp session or local testing, use Hermes' own command flow:
 
 ```bash
-atlas hermes whatsapp
+docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes hermes whatsapp
 ```
 
 Atlas still does not manage the sender policy for that bridge.

@@ -360,21 +360,17 @@ install_from_checkout() {
 
   printf '\n%sNext steps:%s\n' "${BOLD}${CYAN}" "$RESET"
   cat <<'MSG'
-  1. Run Hermes' own setup wizard inside the generated runtime container:
-     atlas hermes setup
-     If the global CLI is not installed yet:
-     scripts/atlasctl hermes setup
-  2. Configure Hermes gateway/messaging in Hermes:
-     atlas hermes gateway setup
-  3. Start or restart Hermes:
-     atlas runtime
-     If the global CLI is not installed yet:
-     scripts/atlasctl runtime
-  4. If you use a public webhook channel, publish only the Hermes webhook path through Tailscale Funnel:
+  1. Atlas has generated Hermes profile/runtime files under data/hermes.
+  2. Run Hermes yourself. For the generated Docker runtime:
+     docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml --profile runtime up -d
+     docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes hermes setup
+     docker compose -f compose.yaml -f data/hermes/compose.runtime.yaml exec hermes hermes gateway setup
+     For isolated runtime groups, replace "hermes" with the target Hermes service name.
+  3. If you use a public webhook channel, publish only the Hermes webhook path through Tailscale Funnel:
      atlas webhook
      If the global CLI is not installed yet:
      scripts/atlasctl webhook
-  5. Use the printed Funnel URL as the provider callback URL when Hermes asks for one.
+  4. Use the printed Funnel URL as the provider callback URL when Hermes asks for one.
 MSG
 }
 
