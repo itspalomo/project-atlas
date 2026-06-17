@@ -39,6 +39,8 @@ After install:
 ```bash
 atlas configure
 atlas apply
+atlas hermes setup
+atlas hermes gateway setup
 atlas runtime
 atlas webhook
 ```

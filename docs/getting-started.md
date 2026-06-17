@@ -58,9 +58,18 @@ After editing `.env` or `ecosystem/atlas.yaml`:
 atlas apply
 ```
 
-This runs migrations, seeds identity metadata, generates or updates Atlas-managed Hermes profile files, and restarts Atlas API.
+This runs migrations, seeds local users, agents, memberships, and optional identity metadata, generates or updates Atlas-managed Hermes profile files, and restarts Atlas API.
 
 ## Start Hermes
+
+Run Hermes' own setup after Atlas has generated the profiles:
+
+```bash
+atlas hermes setup
+atlas hermes gateway setup
+```
+
+Then start or restart the runtime:
 
 ```bash
 atlas runtime

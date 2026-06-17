@@ -17,10 +17,23 @@ Atlas uses Hermes' native WhatsApp support. Atlas does not collect phone numbers
 
 ## Production Path
 
-For WhatsApp Business Cloud API, configure Hermes first for the profile or runtime group you want online. Then start the runtime and publish only the Hermes webhook path:
+Configure Hermes first for the profile or runtime group you want online:
 
 ```bash
 atlas apply
+atlas hermes setup
+atlas hermes gateway setup
+```
+
+For Hermes' personal WhatsApp bridge, Hermes also documents the direct WhatsApp wizard:
+
+```bash
+atlas hermes whatsapp
+```
+
+Then start or restart the runtime and publish only the Hermes webhook path when the selected Hermes channel needs a public callback:
+
+```bash
 atlas runtime
 atlas webhook
 ```
@@ -31,23 +44,20 @@ atlas webhook
 https://<your-node>.<tailnet>.ts.net/whatsapp/webhook
 ```
 
-to the local Hermes webhook listener. Use that URL as the Meta callback URL. Use the verification token configured in Hermes as the Meta webhook verification token.
+to the local Hermes webhook listener. Use that URL as the provider callback URL when Hermes asks for one. Any verification token or channel secret is configured in Hermes.
 
 ## Credentials
 
-For simple single-runtime installs, `.env` includes optional passthrough variables that Docker Compose can provide to Hermes:
+Keep Hermes credentials in Hermes' own profile/runtime configuration. Atlas does not store Meta credentials, WhatsApp sender policy, or model provider auth in `.env`.
+
+For multiple isolated runtime groups, run Hermes setup against the intended generated service/profile:
 
 ```bash
-WHATSAPP_CLOUD_PHONE_NUMBER_ID=<phone-number-id>
-WHATSAPP_CLOUD_ACCESS_TOKEN=<system-user-token>
-WHATSAPP_CLOUD_APP_SECRET=<meta-app-secret>
-WHATSAPP_CLOUD_VERIFY_TOKEN=<random-token>
-WHATSAPP_CLOUD_WEBHOOK_HOST=0.0.0.0
-WHATSAPP_CLOUD_WEBHOOK_PORT=8090
-WHATSAPP_CLOUD_WEBHOOK_PATH=/whatsapp/webhook
+atlas hermes --service hermes-shared-household -p household setup
+atlas hermes --service hermes-shared-household -p household gateway setup
 ```
 
-For multiple isolated runtime groups, prefer profile-local or runtime-local Hermes credentials. Each Hermes gateway should use its own intended channel credentials and authorization policy.
+Each Hermes gateway should use its own intended channel credentials and authorization policy.
 
 ## What Atlas Generates
 
@@ -63,10 +73,10 @@ If an older install has an Atlas-managed WhatsApp allowlist block in a generated
 
 ## Personal Bridge
 
-For a personal WhatsApp session or local testing, use Hermes' own command flow, for example:
+For a personal WhatsApp session or local testing, use Hermes' own command flow through the Atlas wrapper:
 
 ```bash
-hermes whatsapp
+atlas hermes whatsapp
 ```
 
 Atlas still does not manage the sender policy for that bridge.

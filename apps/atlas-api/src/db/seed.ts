@@ -150,7 +150,7 @@ async function main(): Promise<void> {
     }
 
     await client.query("commit");
-    console.log("Seeded Project Atlas identities and agents.");
+    console.log("Seeded Project Atlas users, agents, memberships, and optional identity metadata.");
   } catch (error) {
     await client.query("rollback");
     throw error;

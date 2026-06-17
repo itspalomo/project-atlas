@@ -9,7 +9,9 @@ Use the `atlas` CLI for day-to-day work. It wraps the repository scripts and Doc
 | `atlas status` | Show Compose status and API health. |
 | `atlas doctor` | Check Git, Docker, Tailscale, config, services, and API readiness. |
 | `atlas configure` | Edit `.env` and `ecosystem/atlas.yaml`. |
-| `atlas apply` | Rerun migrations, seed identities, regenerate Atlas-managed Hermes files, restart Atlas API. |
+| `atlas apply` | Rerun migrations, seed local users/agents, regenerate Atlas-managed Hermes files, restart Atlas API. |
+| `atlas hermes setup` | Run Hermes' own setup wizard inside the generated runtime container. |
+| `atlas hermes gateway setup` | Run Hermes' gateway/messaging setup inside the generated runtime container. |
 | `atlas runtime` | Generate Hermes profiles and start the Hermes runtime service. |
 | `atlas webhook` | Publish Hermes' WhatsApp Cloud webhook through Tailscale Funnel. |
 | `atlas logs atlas-api` | Tail Atlas API logs. |
@@ -56,7 +58,7 @@ The installer and apply path are designed for reruns:
 - Tailscale setup is skipped when the node is already connected.
 - Honcho source is cloned only when missing unless `HONCHO_AUTO_UPDATE=true`.
 - Database migrations run once through `schema_migrations`.
-- Seeding converges memberships and identity metadata to `ecosystem/atlas.yaml`.
+- Seeding converges users, memberships, and optional local identity metadata to `ecosystem/atlas.yaml`.
 - Profile generation merges Atlas-managed Hermes settings while preserving Hermes-owned credentials, sessions, `SOUL.md`, and other profile state.
 - Runtime generation writes `data/hermes/compose.runtime.yaml`; `atlas runtime` uses it to start the configured Hermes runtime groups.
 
@@ -68,7 +70,7 @@ Administrative access should happen over Tailscale SSH. WhatsApp Cloud needs a p
 https://<node>.<tailnet>.ts.net/whatsapp/webhook
 ```
 
-`atlas webhook` proxies that path to Hermes' host-local Cloud API listener.
+`atlas webhook` proxies that path to Hermes' host-local webhook listener.
 
 ## Backups
 

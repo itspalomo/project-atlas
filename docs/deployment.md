@@ -6,7 +6,7 @@ Target host:
 - Docker Compose.
 - Tailscale for private administration.
 - Tailscale Funnel for the public Hermes WhatsApp Cloud webhook.
-- Runtime model auth configured through your selected Hermes provider. If you use Hermes/OpenAI auth provider, no `LLM_*` key is required in Atlas `.env`.
+- Runtime model auth is configured through Hermes after Atlas setup. Atlas does not ask for LLM provider keys.
 
 ## One-Command Install
 
@@ -60,7 +60,7 @@ The installer:
 5. Clones upstream Honcho into `vendor/honcho`.
 6. Starts Atlas PostgreSQL and self-hosted Honcho.
 7. Runs migrations.
-8. Seeds users, agents, channel identity metadata, and membership from `ecosystem/atlas.yaml`.
+8. Seeds users, agents, local identity metadata, and membership from `ecosystem/atlas.yaml`.
 9. Generates Hermes profile assets, native Atlas capability skills, MCP config, and native Honcho memory-provider configs.
 10. Starts Atlas API.
 
@@ -121,11 +121,24 @@ agents:
 
 ## Runtime
 
-Start Hermes after configuring runtime environment:
+After Atlas setup, run Hermes' own setup wizard inside the generated runtime container:
 
 ```bash
-scripts/init-hermes-profiles.sh
-docker compose --profile runtime up -d --build hermes
+atlas hermes setup
+atlas hermes gateway setup
+```
+
+For isolated runtime groups, choose the service/profile explicitly:
+
+```bash
+atlas hermes --service hermes-shared-household -p household setup
+atlas hermes --service hermes-shared-household -p household gateway setup
+```
+
+Then start or restart Hermes:
+
+```bash
+atlas runtime
 ```
 
 `scripts/init-hermes-profiles.sh` writes profile directories under `data/hermes/`. Each configured agent becomes a Hermes profile. By default, agents run in the `default` runtime group. For hard isolation, configure multiple `runtimeGroups`; Atlas will generate one Hermes service per runtime group. Each generated profile includes:
@@ -146,14 +159,14 @@ runtimeGroups:
     ports:
       dashboard: 9121
       gateway: 8651
-      whatsappCloudWebhook: 8091
+      webhook: 8091
 
   - id: shared-household
     isolation: container
     ports:
       dashboard: 9123
       gateway: 8653
-      whatsappCloudWebhook: 8093
+      webhook: 8093
 
 agents:
   - id: member-one-assistant
@@ -178,8 +191,6 @@ Honcho is part of the Atlas Compose stack:
 
 Atlas reaches Honcho at `http://honcho-api:8000` inside Compose. The host can reach it at `http://127.0.0.1:8000` by default. Honcho source is cloned to `vendor/honcho` because upstream builds from source rather than publishing a stable Docker Hub image.
 
-`LLM_OPENAI_API_KEY`, `LLM_ANTHROPIC_API_KEY`, and `LLM_GEMINI_API_KEY` are optional in Atlas `.env`. Leave them blank when Hermes or the chosen runtime auth provider handles model authentication.
-
 ## WhatsApp Public Edge
 
 WhatsApp Cloud API requires a public HTTPS webhook. Atlas publishes Hermes' native WhatsApp Cloud webhook through Tailscale Funnel:
@@ -194,7 +205,7 @@ Before running the command, enable Funnel in the Tailscale admin console or tail
 scripts/atlasctl webhook
 ```
 
-The script proxies `https://<node>.<tailnet>.ts.net/whatsapp/webhook` to Hermes' local WhatsApp Cloud listener on `127.0.0.1:${WHATSAPP_CLOUD_WEBHOOK_PORT:-8090}`. Use the printed URL as the Meta WhatsApp webhook callback URL.
+The script proxies `https://<node>.<tailnet>.ts.net/whatsapp/webhook` to Hermes' host-local webhook listener on `127.0.0.1:${HERMES_WEBHOOK_PORT:-8090}`. Use the printed URL as the provider callback URL when Hermes asks for one.
 
 ## Backups
 

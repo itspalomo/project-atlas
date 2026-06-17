@@ -17,8 +17,10 @@
 | `atlas logs [service]` | Tails Compose logs for all services, or one service such as `atlas-api`. |
 | `atlas update` | Pulls the latest Git changes with `git pull --ff-only`, then reruns the installer. |
 | `atlas migrate` | Runs database migrations through the `atlas-api` container. |
-| `atlas seed` | Seeds configured users, agents, memberships, and identity metadata from `ecosystem/atlas.yaml`. |
+| `atlas seed` | Seeds configured users, agents, memberships, and optional identity metadata from `ecosystem/atlas.yaml`. |
 | `atlas profiles` | Merges Atlas-managed Hermes `config.yaml` settings, updates the native `skills/atlas-context/SKILL.md`, writes `atlas-capabilities.json`, Honcho config, MCP config, and the generated runtime Compose override from the ecosystem config. |
+| `atlas hermes [args...]` | Starts the selected Hermes runtime container if needed, then runs Hermes' own CLI inside it. With no args it runs `hermes setup`. Use `--service <compose-service>` for isolated runtime groups and `-p <profile>` for a specific Hermes profile. |
+| `atlas hermes-setup` | Shortcut for `atlas hermes setup`. |
 | `atlas runtime` | Regenerates Hermes profiles and starts all configured Hermes runtime groups. |
 | `atlas runtime-off` | Stops the Hermes runtime service. |
 | `atlas honcho` | Clones/prepares self-hosted Honcho and starts its Compose services. |

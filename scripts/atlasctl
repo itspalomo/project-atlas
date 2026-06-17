@@ -43,8 +43,10 @@ Services:
 
 Data/Hermes:
   migrate      Run Postgres migrations
-  seed         Seed users, agents, and identity metadata
+  seed         Seed local users, agents, memberships, and optional identity metadata
   profiles     Merge Hermes config.yaml settings and generate Atlas native skill, MCP, and honcho files
+  hermes       Run Hermes CLI inside a runtime container; defaults to 'setup'
+  hermes-setup Run Hermes setup wizard inside a runtime container
   runtime      Start Hermes runtime profile
   runtime-off  Stop Hermes runtime profile
   honcho       Clone/start self-hosted Honcho
@@ -89,6 +91,96 @@ compose_cmd() {
 
 runtime_services() {
   compose_cmd --profile runtime config --services 2>/dev/null | grep '^hermes' || true
+}
+
+select_hermes_service() {
+  local requested="$1"
+  local services
+  local service_count
+
+  services="$(runtime_services)"
+  if [[ -z "$services" ]]; then
+    echo "No Hermes runtime services are configured. Run 'atlas apply' first." >&2
+    return 1
+  fi
+
+  if [[ -n "$requested" ]]; then
+    if ! grep -qx "$requested" <<<"$services"; then
+      echo "Unknown Hermes service: $requested" >&2
+      echo "Available services:" >&2
+      printf '  %s\n' $services >&2
+      return 1
+    fi
+    printf '%s\n' "$requested"
+    return 0
+  fi
+
+  service_count="$(printf '%s\n' "$services" | sed '/^$/d' | wc -l | tr -d ' ')"
+  if [[ "$service_count" -eq 1 ]]; then
+    printf '%s\n' "$services"
+    return 0
+  fi
+
+  echo "Multiple Hermes runtime services are configured. Choose one with --service." >&2
+  printf '  %s\n' $services >&2
+  return 1
+}
+
+run_hermes_cli() {
+  local service="${HERMES_SERVICE:-}"
+  local profile=""
+  local hermes_service
+  local hermes_args=()
+  local args=()
+
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --service)
+        service="${2:-}"
+        if [[ -z "$service" ]]; then
+          echo "--service requires a service name." >&2
+          return 1
+        fi
+        shift 2
+        ;;
+      --profile|-p)
+        profile="${2:-}"
+        if [[ -z "$profile" ]]; then
+          echo "$1 requires a profile name." >&2
+          return 1
+        fi
+        shift 2
+        ;;
+      --)
+        shift
+        args+=("$@")
+        break
+        ;;
+      *)
+        args+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  if [[ "${#args[@]}" -eq 0 ]]; then
+    args=(setup)
+  fi
+
+  scripts/init-hermes-profiles.sh
+  hermes_service="$(select_hermes_service "$service")" || return 1
+  compose_cmd --profile runtime up -d --build "$hermes_service"
+
+  if [[ -n "$profile" ]]; then
+    hermes_args+=("-p" "$profile")
+  fi
+  hermes_args+=("${args[@]}")
+
+  if [[ -t 0 && -t 1 ]]; then
+    compose_cmd exec "$hermes_service" hermes "${hermes_args[@]}"
+  else
+    compose_cmd exec -T "$hermes_service" hermes "${hermes_args[@]}"
+  fi
 }
 
 case "$command" in
@@ -192,6 +284,12 @@ case "$command" in
     ;;
   profiles)
     scripts/init-hermes-profiles.sh
+    ;;
+  hermes)
+    run_hermes_cli "$@"
+    ;;
+  hermes-setup)
+    run_hermes_cli "$@" setup
     ;;
   runtime)
     scripts/init-hermes-profiles.sh

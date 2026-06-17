@@ -49,7 +49,7 @@ flowchart LR
 | Install on a VPS | [Getting Started](getting-started.md) |
 | Understand the system | [Architecture](architecture.md) |
 | Operate services | [Operations](operations.md) |
-| Configure WhatsApp | [WhatsApp](whatsapp.md) |
+| Connect WhatsApp through Hermes | [WhatsApp](whatsapp.md) |
 | Build the iOS bridge | [iOS Bridge](ios-bridge.md) |
 | Review data boundaries | [Security Model](security.md) |
 

@@ -141,24 +141,9 @@ function renderRuntimeCompose(
   agentsByRuntimeGroup: Map<string, EcosystemAgent[]>
 ): Record<string, unknown> {
   const services: Record<string, unknown> = {};
-  const defaultGroupHasAgents = (agentsByRuntimeGroup.get("default") ?? []).length > 0;
-
-  if (!defaultGroupHasAgents) {
-    services.hermes = {
-      profiles: ["atlas-disabled"]
-    };
-  }
 
   for (const group of runtimeGroups) {
     if ((agentsByRuntimeGroup.get(group.id) ?? []).length === 0) {
-      continue;
-    }
-
-    if (group.id === "default") {
-      const defaultOverride = renderDefaultRuntimeService(group);
-      if (Object.keys(defaultOverride).length > 0) {
-        services.hermes = defaultOverride;
-      }
       continue;
     }
 
@@ -170,27 +155,17 @@ function renderRuntimeCompose(
   };
 }
 
-function renderDefaultRuntimeService(group: EcosystemRuntimeGroup): Record<string, unknown> {
-  const ports = runtimeGroupPorts(group);
-
-  return ports.length > 0 ? { ports } : {};
-}
-
 function renderRuntimeService(group: EcosystemRuntimeGroup): Record<string, unknown> {
   const service: Record<string, unknown> = {
     image: "nousresearch/hermes-agent:latest",
     restart: "unless-stopped",
     command: "gateway run",
-    env_file: [
-      {
-        path: ".env",
-        required: false
-      }
-    ],
     environment: {
       HERMES_HOME: "/opt/data",
       HONCHO_BASE_URL: "${HONCHO_BASE_URL:-http://honcho-api:8000}",
-      HONCHO_API_KEY: "${HONCHO_API_KEY:-}"
+      HONCHO_API_KEY: "${HONCHO_API_KEY:-}",
+      ATLAS_MCP_URL: "${ATLAS_MCP_URL:-http://atlas-api:3000/mcp}",
+      ATLAS_MCP_KEY: "${ATLAS_MCP_KEY:-}"
     },
     depends_on: {
       "honcho-api": {
@@ -212,15 +187,30 @@ function renderRuntimeService(group: EcosystemRuntimeGroup): Record<string, unkn
 
 function runtimeGroupPorts(group: EcosystemRuntimeGroup): string[] {
   const ports: string[] = [];
+  const dashboardPort = group.ports.dashboard
+    ? String(group.ports.dashboard)
+    : group.id === "default"
+      ? "${HERMES_DASHBOARD_PORT:-9119}"
+      : undefined;
+  const gatewayPort = group.ports.gateway
+    ? String(group.ports.gateway)
+    : group.id === "default"
+      ? "${HERMES_GATEWAY_PORT:-8642}"
+      : undefined;
+  const webhookPort = group.ports.webhook
+    ? String(group.ports.webhook)
+    : group.id === "default"
+      ? "${HERMES_WEBHOOK_PORT:-8090}"
+      : undefined;
 
-  if (group.ports.dashboard) {
-    ports.push(`127.0.0.1:${group.ports.dashboard}:9119`);
+  if (dashboardPort) {
+    ports.push(`127.0.0.1:${dashboardPort}:9119`);
   }
-  if (group.ports.gateway) {
-    ports.push(`127.0.0.1:${group.ports.gateway}:8642`);
+  if (gatewayPort) {
+    ports.push(`127.0.0.1:${gatewayPort}:8642`);
   }
-  if (group.ports.whatsappCloudWebhook) {
-    ports.push(`127.0.0.1:${group.ports.whatsappCloudWebhook}:8090`);
+  if (webhookPort) {
+    ports.push(`127.0.0.1:${webhookPort}:8090`);
   }
 
   return ports;

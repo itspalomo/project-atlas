@@ -28,7 +28,7 @@ const runtimeGroupSchema = z.object({
     .object({
       dashboard: z.number().int().positive().optional(),
       gateway: z.number().int().positive().optional(),
-      whatsappCloudWebhook: z.number().int().positive().optional()
+      webhook: z.number().int().positive().optional()
     })
     .default({})
 });
@@ -165,7 +165,7 @@ export function ecosystemRuntimeGroups(config: EcosystemConfig): Array<{
   ports: {
     dashboard?: number;
     gateway?: number;
-    whatsappCloudWebhook?: number;
+    webhook?: number;
   };
 }> {
   return config.runtimeGroups.length > 0 ? config.runtimeGroups : [defaultRuntimeGroup];

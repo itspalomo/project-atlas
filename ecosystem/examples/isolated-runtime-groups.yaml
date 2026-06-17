@@ -11,7 +11,7 @@ runtimeGroups:
     ports:
       dashboard: 9121
       gateway: 8651
-      whatsappCloudWebhook: 8091
+      webhook: 8091
 
   - id: member-two-private
     displayName: Member Two Private Runtime
@@ -19,7 +19,7 @@ runtimeGroups:
     ports:
       dashboard: 9122
       gateway: 8652
-      whatsappCloudWebhook: 8092
+      webhook: 8092
 
   - id: shared-household
     displayName: Shared Household Runtime
@@ -27,7 +27,7 @@ runtimeGroups:
     ports:
       dashboard: 9123
       gateway: 8653
-      whatsappCloudWebhook: 8093
+      webhook: 8093
 
 users:
   - id: member-one

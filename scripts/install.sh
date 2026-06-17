@@ -227,16 +227,9 @@ apply_env_overrides() {
     ATLAS_MCP_URL \
     ATLAS_MCP_KEY \
     ATLAS_ECOSYSTEM_CONFIG \
-    WHATSAPP_CLOUD_PHONE_NUMBER_ID \
-    WHATSAPP_CLOUD_ACCESS_TOKEN \
-    WHATSAPP_CLOUD_APP_SECRET \
-    WHATSAPP_CLOUD_VERIFY_TOKEN \
-    WHATSAPP_CLOUD_WEBHOOK_HOST \
-    WHATSAPP_CLOUD_WEBHOOK_PORT \
-    WHATSAPP_CLOUD_WEBHOOK_PATH \
-    WHATSAPP_CLOUD_API_VERSION \
     HERMES_DASHBOARD_PORT \
     HERMES_GATEWAY_PORT \
+    HERMES_WEBHOOK_PORT \
     HONCHO_SOURCE_DIR \
     HONCHO_AUTO_UPDATE \
     HONCHO_BASE_URL \
@@ -244,9 +237,6 @@ apply_env_overrides() {
     HONCHO_HOST_PORT \
     HONCHO_AUTH_USE_AUTH \
     HONCHO_AUTH_JWT_SECRET \
-    LLM_OPENAI_API_KEY \
-    LLM_ANTHROPIC_API_KEY \
-    LLM_GEMINI_API_KEY \
     ATLAS_BRIDGE_API_KEY \
     TAILSCALE_AUTH_KEY \
     TAILSCALE_HOSTNAME \
@@ -349,7 +339,7 @@ install_from_checkout() {
     info "Skipping Linux system dependency and Tailscale setup on $(uname -s)."
   fi
 
-  if grep -Eq 'change-me-generate-with-openssl|POSTGRES_PASSWORD=$|ATLAS_MCP_KEY=$|ATLAS_BRIDGE_API_KEY=$|WHATSAPP_CLOUD_VERIFY_TOKEN=$' .env; then
+  if grep -Eq 'change-me-generate-with-openssl|POSTGRES_PASSWORD=$|ATLAS_MCP_KEY=$|ATLAS_BRIDGE_API_KEY=$' .env; then
     run_command "Rotating local placeholder secrets" scripts/rotate-local-secrets.sh
   else
     section "Checking local secrets"
@@ -361,7 +351,7 @@ install_from_checkout() {
   run_command "Starting data and memory services" docker compose up -d --build postgres honcho-api honcho-deriver
   run_command "Building Atlas API" docker compose build atlas-api
   run_command "Applying database migrations" docker compose run --rm atlas-api node dist/db/migrate.js
-  run_command "Seeding users, agents, and identity metadata" docker compose run --rm atlas-api node dist/db/seed.js
+  run_command "Seeding local users, agents, and memberships" docker compose run --rm atlas-api node dist/db/seed.js
   run_command "Generating Hermes profiles" scripts/init-hermes-profiles.sh
   run_command "Starting Atlas API" docker compose up -d --build atlas-api
 
@@ -370,16 +360,21 @@ install_from_checkout() {
 
   printf '\n%sNext steps:%s\n' "${BOLD}${CYAN}" "$RESET"
   cat <<'MSG'
-  1. Configure messaging, providers, and channel authorization in Hermes.
-  2. Start Hermes:
+  1. Run Hermes' own setup wizard inside the generated runtime container:
+     atlas hermes setup
+     If the global CLI is not installed yet:
+     scripts/atlasctl hermes setup
+  2. Configure Hermes gateway/messaging in Hermes:
+     atlas hermes gateway setup
+  3. Start or restart Hermes:
      atlas runtime
      If the global CLI is not installed yet:
      scripts/atlasctl runtime
-  3. Publish the Hermes WhatsApp webhook through Tailscale Funnel:
+  4. If you use a public webhook channel, publish only the Hermes webhook path through Tailscale Funnel:
      atlas webhook
      If the global CLI is not installed yet:
      scripts/atlasctl webhook
-  4. Use the printed Funnel URL as the Meta webhook callback URL.
+  5. Use the printed Funnel URL as the provider callback URL when Hermes asks for one.
 MSG
 }
 

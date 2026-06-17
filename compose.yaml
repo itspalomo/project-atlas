@@ -134,31 +134,6 @@ services:
       timeout: 5s
       retries: 10
 
-  hermes:
-    image: nousresearch/hermes-agent:latest
-    restart: unless-stopped
-    command: gateway run
-    env_file:
-      - path: .env
-        required: false
-    environment:
-      HERMES_HOME: /opt/data
-      HONCHO_BASE_URL: ${HONCHO_BASE_URL:-http://honcho-api:8000}
-      HONCHO_API_KEY: ${HONCHO_API_KEY:-}
-    depends_on:
-      honcho-api:
-        condition: service_healthy
-    volumes:
-      - ./data/hermes:/opt/data
-    ports:
-      - "127.0.0.1:${HERMES_DASHBOARD_PORT:-9119}:9119"
-      - "127.0.0.1:${HERMES_GATEWAY_PORT:-8642}:8642"
-      - "127.0.0.1:${WHATSAPP_CLOUD_WEBHOOK_PORT:-8090}:8090"
-    security_opt:
-      - no-new-privileges:true
-    profiles:
-      - runtime
-
 volumes:
   postgres-data:
   honcho-postgres-data:
