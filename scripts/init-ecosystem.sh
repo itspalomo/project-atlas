@@ -317,8 +317,8 @@ available_skills=(household planning calendar reminders health training nutritio
 
 section "Welcome"
 printf '%sThis creates your local Atlas ecosystem file:%s %s\n' "$DIM" "$RESET" "$CONFIG_PATH"
-printf '%sAtlas is the private front door. It checks WhatsApp sender identity, agent membership, routing, approvals, and memory boundaries before a message reaches Hermes.%s\n' "$DIM" "$RESET"
-printf '%sHermes is still the agent runtime. Hermes/provider auth stays with Hermes; Atlas only names the Hermes profile each agent should use.%s\n' "$DIM" "$RESET"
+printf '%sAtlas records your people, agents, bridge scopes, and approvals. It also generates Hermes WhatsApp allowlists from this file.%s\n' "$DIM" "$RESET"
+printf '%sHermes is still the agent runtime. Hermes/provider auth and native memory-provider behavior stay with Hermes; Atlas generates the profile and Honcho workspace config.%s\n' "$DIM" "$RESET"
 printf '%sPress Enter to accept a default. You can edit this file later with:%s atlas configure\n' "$DIM" "$RESET"
 
 section "1. Install label"
@@ -331,7 +331,7 @@ fi
 info "Internal id for config files: $project_id"
 
 section "2. Allowed people"
-prompt_count "How many people should be allowed to use this Atlas?" "2" "Atlas rejects WhatsApp senders who are not on this list. Hermes only sees messages after Atlas authorizes and routes them."
+prompt_count "How many people should be allowed to use this Atlas?" "2" "These WhatsApp numbers become Hermes gateway allowlists. Senders not on the list are rejected by Hermes before the agent loop."
 user_count="$PROMPT_RESULT"
 
 user_ids=()
@@ -480,7 +480,7 @@ for index in $(seq 1 "$agent_count"); do
 done
 
 section "4. WhatsApp routing"
-info "Only allowlisted WhatsApp numbers can talk to Atlas."
+info "Only allowlisted WhatsApp numbers can talk to Hermes through the generated gateway config."
 info "The default agent is where that person's normal WhatsApp messages go unless they use an alias."
 
 user_default_agents=()

@@ -141,12 +141,21 @@ services:
     env_file:
       - path: .env
         required: false
+      - path: ./data/hermes/atlas.env
+        required: false
+    environment:
+      HERMES_HOME: /opt/data
+      HONCHO_BASE_URL: ${HONCHO_BASE_URL:-http://honcho-api:8000}
+      HONCHO_API_KEY: ${HONCHO_API_KEY:-}
+    depends_on:
+      honcho-api:
+        condition: service_healthy
     volumes:
-      - hermes-data:/opt/data
-      - ./data/hermes/profiles:/opt/atlas/profiles:ro
+      - ./data/hermes:/opt/data
     ports:
       - "127.0.0.1:${HERMES_DASHBOARD_PORT:-9119}:9119"
       - "127.0.0.1:${HERMES_GATEWAY_PORT:-8642}:8642"
+      - "127.0.0.1:${WHATSAPP_CLOUD_WEBHOOK_PORT:-8090}:8090"
     security_opt:
       - no-new-privileges:true
     profiles:
@@ -154,6 +163,5 @@ services:
 
 volumes:
   postgres-data:
-  hermes-data:
   honcho-postgres-data:
   honcho-redis-data:

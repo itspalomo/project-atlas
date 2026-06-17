@@ -5,10 +5,10 @@ Project Atlas separates the ecosystem from the agent runtime. The ecosystem is i
 Atlas owns:
 
 - Persistent user and agent identities.
-- Channel allowlists and permissions.
+- Identity metadata and generated Hermes gateway allowlist values.
 - Built-in skill catalog and generated skill manifests.
 - Structured facts in PostgreSQL.
-- Memory workspace boundaries.
+- Honcho workspace names in generated Hermes profile config.
 - Approval workflows.
 - Integration ingress and egress.
 - Audit logs.
@@ -18,6 +18,7 @@ Hermes owns:
 - The runtime conversation loop.
 - Tool execution inside its configured sandbox.
 - Agent profile behavior.
+- Native memory-provider activation and Honcho memory access.
 
 Honcho owns:
 
@@ -29,10 +30,10 @@ Honcho owns:
 flowchart TD
   CFG["ecosystem/atlas.yaml"] --> API["Atlas API"]
   CFG --> PROF["Generated Hermes profiles"]
-  WA["WhatsApp Cloud API"] -->|"signed webhook"| API
+  WA["WhatsApp Cloud API"] -->|"signed webhook"| H
   IOS["iOS Bridge"] -->|"private bridge API"| API
   API --> PG["Atlas PostgreSQL"]
-  API --> H["Hermes runtime"]
+  H -->|"structured facts + approvals"| API
   H --> HC["Self-hosted Honcho API"]
   HC --> HPG["Honcho PostgreSQL + pgvector"]
   HC --> HR["Honcho Redis"]
@@ -42,13 +43,12 @@ flowchart TD
   Admin --> HC
 ```
 
-## Routing Rules
+## WhatsApp Rules
 
-- Each allowlisted WhatsApp number maps to the default agent defined for that identity.
-- Shared-agent aliases such as `family:` or `/household` are defined in `ecosystem/atlas.yaml`.
-- A shared-agent alias only routes if the sender is a member of that agent.
-- Unknown WhatsApp senders are rejected and audited.
-- Replayed WhatsApp message ids are ignored after the first stored inbound message.
+- Allowed WhatsApp numbers are defined in `ecosystem/atlas.yaml`.
+- Atlas generates Hermes' `WHATSAPP_ALLOWED_USERS` and `WHATSAPP_CLOUD_ALLOWED_USERS` values in `data/hermes/atlas.env`.
+- Hermes' WhatsApp gateway rejects unknown senders before the agent loop.
+- Atlas still stores identity records for bridge scoping, structured facts, approvals, and audit trails.
 
 ## Structured Data Versus Memory
 
@@ -64,10 +64,10 @@ PostgreSQL is the source of truth for facts:
 - Approvals
 - Audit logs
 
-Honcho is the memory layer for conversational and preference memory. Atlas keeps Honcho workspace ids but does not merge workspaces automatically.
+Honcho is the memory layer for conversational and preference memory. Atlas generates Hermes profile-local `honcho.json` files with the intended workspace ids, and Hermes uses its native Honcho memory provider to read and write memory. Atlas does not merge workspaces automatically.
 
 ## Skills
 
 Skills are configured per agent in `ecosystem/atlas.yaml`. Atlas validates skill ids, stores a manifest in the agent config, appends a minimal data-capability map to generated Hermes `SOUL.md` files, and writes a profile-local `skills.json`.
 
-Skills are not a prompt-only security mechanism or persona system. Hermes remains the reasoning runtime; Atlas provides scoped facts, bridge context, and approval boundaries. Identity checks, user scoping, memory boundaries, and approvals remain enforced by Atlas API and the iOS bridge.
+Skills are not a prompt-only security mechanism or persona system. Hermes remains the reasoning runtime; Atlas provides scoped facts, bridge context, generated memory-provider config, and approval boundaries. WhatsApp identity is enforced by Hermes gateway allowlists; bridge data scoping and approvals remain enforced by Atlas API and the iOS bridge.

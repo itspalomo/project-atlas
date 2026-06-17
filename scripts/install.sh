@@ -232,6 +232,14 @@ apply_env_overrides() {
     WHATSAPP_VERIFY_TOKEN \
     WHATSAPP_SEND_UNAUTHORIZED_REPLY \
     WHATSAPP_REQUEST_TIMEOUT_MS \
+    WHATSAPP_CLOUD_PHONE_NUMBER_ID \
+    WHATSAPP_CLOUD_ACCESS_TOKEN \
+    WHATSAPP_CLOUD_APP_SECRET \
+    WHATSAPP_CLOUD_VERIFY_TOKEN \
+    WHATSAPP_CLOUD_WEBHOOK_HOST \
+    WHATSAPP_CLOUD_WEBHOOK_PORT \
+    WHATSAPP_CLOUD_WEBHOOK_PATH \
+    WHATSAPP_CLOUD_API_VERSION \
     ATLAS_RUNTIME_MODE \
     HERMES_BASE_URL \
     HERMES_ENDPOINT_TEMPLATE \
@@ -350,7 +358,7 @@ install_from_checkout() {
     info "Skipping Linux system dependency and Tailscale setup on $(uname -s)."
   fi
 
-  if grep -Eq 'change-me-generate-with-openssl|POSTGRES_PASSWORD=$|ATLAS_BRIDGE_API_KEY=$|WHATSAPP_VERIFY_TOKEN=$' .env; then
+  if grep -Eq 'change-me-generate-with-openssl|POSTGRES_PASSWORD=$|ATLAS_BRIDGE_API_KEY=$|WHATSAPP_VERIFY_TOKEN=$|WHATSAPP_CLOUD_VERIFY_TOKEN=$' .env; then
     run_command "Rotating local placeholder secrets" scripts/rotate-local-secrets.sh
   else
     section "Checking local secrets"
@@ -362,7 +370,7 @@ install_from_checkout() {
   run_command "Starting data and memory services" docker compose up -d --build postgres honcho-api honcho-deriver
   run_command "Building Atlas API" docker compose build atlas-api
   run_command "Applying database migrations" docker compose run --rm atlas-api node dist/db/migrate.js
-  run_command "Seeding users, agents, and allowlists" docker compose run --rm atlas-api node dist/db/seed.js
+  run_command "Seeding users, agents, and identity metadata" docker compose run --rm atlas-api node dist/db/seed.js
   run_command "Generating Hermes profiles" scripts/init-hermes-profiles.sh
   run_command "Starting Atlas API" docker compose up -d --build atlas-api
 
@@ -371,16 +379,16 @@ install_from_checkout() {
 
   printf '\n%sNext steps:%s\n' "${BOLD}${CYAN}" "$RESET"
   cat <<'MSG'
-  1. Fill WhatsApp Cloud API values in .env.
-  2. Publish the webhook through Tailscale Funnel:
-     atlas webhook
-     If the global CLI is not installed yet:
-     scripts/atlasctl webhook
-  3. Use the printed Funnel URL as the Meta webhook callback URL.
-  4. Start Hermes:
+  1. Configure Hermes WhatsApp Cloud values in .env or by running Hermes' whatsapp-cloud setup.
+  2. Start Hermes:
      atlas runtime
      If the global CLI is not installed yet:
      scripts/atlasctl runtime
+  3. Publish the Hermes WhatsApp webhook through Tailscale Funnel:
+     atlas webhook
+     If the global CLI is not installed yet:
+     scripts/atlasctl webhook
+  4. Use the printed Funnel URL as the Meta webhook callback URL.
 MSG
 }
 

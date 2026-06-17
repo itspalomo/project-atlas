@@ -5,7 +5,7 @@ Target host:
 - Ubuntu 24.04 VPS on Hostinger, DigitalOcean, or similar.
 - Docker Compose.
 - Tailscale for private administration.
-- Tailscale Funnel for the public WhatsApp webhook.
+- Tailscale Funnel for the public Hermes WhatsApp Cloud webhook.
 - Runtime model auth configured through your selected Hermes provider. If you use Hermes/OpenAI auth provider, no `LLM_*` key is required in Atlas `.env`.
 
 ## One-Command Install
@@ -23,7 +23,7 @@ curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/script
   | sudo env \
       TAILSCALE_AUTH_KEY=tskey-auth-... \
       TAILSCALE_HOSTNAME=project-atlas \
-      WHATSAPP_VERIFY_TOKEN=replace-me \
+      WHATSAPP_CLOUD_VERIFY_TOKEN=replace-me \
       bash
 ```
 
@@ -36,7 +36,7 @@ curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/script
 
 The install script works in two modes. When run outside a checkout, including through `curl | bash`, it installs base package dependencies where supported, clones or updates Atlas, creates `.env` from `.env.example` when missing, copies supported environment overrides into `.env`, installs the `atlas` CLI, and runs the local installer. When run inside a checkout, it installs that checkout directly.
 
-After editing `.env` or `ecosystem/atlas.yaml`, run `atlas apply` to rerun migrations, converge seeded identities/agents/allowlists, regenerate Hermes profile assets, and restart Atlas API.
+After editing `.env` or `ecosystem/atlas.yaml`, run `atlas apply` to rerun migrations, converge seeded identity metadata and agents, regenerate Hermes profile assets and gateway allowlists, and restart Atlas API.
 
 Use the CLI after install:
 
@@ -61,8 +61,8 @@ The installer:
 5. Clones upstream Honcho into `vendor/honcho`.
 6. Starts Atlas PostgreSQL and self-hosted Honcho.
 7. Runs migrations.
-8. Seeds users, agents, channel allowlists, and membership from `ecosystem/atlas.yaml`.
-9. Generates Hermes profile assets, skill manifests, and Honcho configs.
+8. Seeds users, agents, channel identity metadata, and membership from `ecosystem/atlas.yaml`.
+9. Generates Hermes profile assets, skill manifests, and native Honcho memory-provider configs.
 10. Starts Atlas API.
 
 Installer environment knobs:
@@ -89,7 +89,7 @@ The installer is safe to rerun:
 
 ## Ecosystem Config
 
-The local ecosystem file controls identity and routing. Atlas uses it as the private perimeter in front of Hermes: WhatsApp sender identity, agent membership, routing, approvals, and memory boundaries are checked by Atlas before a message reaches Hermes. Hermes remains the runtime and handles model/provider auth.
+The local ecosystem file controls identity, agents, bridge scopes, and generated runtime config. Atlas writes Hermes WhatsApp gateway allowlists and Honcho memory-provider config from this file. Hermes remains the runtime and handles model/provider auth, WhatsApp sender allowlists, and native memory-provider integration.
 
 If `ecosystem/atlas.yaml` does not exist, the installer opens an onboarding questionnaire. It asks for an optional install label, allowed users, WhatsApp numbers, shared or personal agents, Hermes profile names, optional per-agent Hermes endpoint overrides, Honcho memory workspaces, and enabled Atlas bridge capabilities. It does not ask for OpenAI or LLM provider keys; those stay with the Hermes/runtime auth provider.
 
@@ -137,6 +137,8 @@ scripts/init-hermes-profiles.sh
 docker compose --profile runtime up -d --build hermes
 ```
 
+`scripts/init-hermes-profiles.sh` writes profile directories under `data/hermes/profiles/`. Each generated profile includes `config.yaml` with `memory.provider: honcho` and a profile-local `honcho.json` pointing at the self-hosted Honcho API. Compose mounts `data/hermes` at `/opt/data`, which is the Hermes data root in the container.
+
 Set `ATLAS_RUNTIME_MODE=hermes` after the Hermes profile endpoints are reachable.
 
 ## Honcho
@@ -154,9 +156,9 @@ Atlas reaches Honcho at `http://honcho-api:8000` inside Compose. The host can re
 
 ## WhatsApp Public Edge
 
-WhatsApp Cloud API requires a public HTTPS webhook. Atlas publishes that webhook through Tailscale Funnel:
+WhatsApp Cloud API requires a public HTTPS webhook. Atlas publishes Hermes' native WhatsApp Cloud webhook through Tailscale Funnel:
 
-- Public through Funnel: `GET /webhooks/whatsapp`, `POST /webhooks/whatsapp`.
+- Public through Funnel: `GET /whatsapp/webhook`, `POST /whatsapp/webhook`.
 - Private over Tailscale: everything else.
 - Never expose Hermes or PostgreSQL publicly.
 
@@ -166,7 +168,7 @@ Before running the command, enable Funnel in the Tailscale admin console or tail
 scripts/atlasctl webhook
 ```
 
-The script proxies `https://<node>.<tailnet>.ts.net/webhooks/whatsapp` to the local Atlas API on `127.0.0.1:${ATLAS_API_PORT:-3000}`. Use the printed URL as the Meta WhatsApp webhook callback URL.
+The script proxies `https://<node>.<tailnet>.ts.net/whatsapp/webhook` to Hermes' local WhatsApp Cloud listener on `127.0.0.1:${WHATSAPP_CLOUD_WEBHOOK_PORT:-8090}`. Use the printed URL as the Meta WhatsApp webhook callback URL.
 
 ## Backups
 
@@ -174,5 +176,5 @@ Back up:
 
 - PostgreSQL volume `postgres-data`.
 - Honcho volumes `honcho-postgres-data` and `honcho-redis-data`.
-- Hermes profile/data volume `hermes-data`.
+- Hermes data directory `data/hermes/`.
 - `.env` secrets in a password manager or encrypted backup.

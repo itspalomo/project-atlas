@@ -17,12 +17,12 @@
 | `atlas logs [service]` | Tails Compose logs for all services, or one service such as `atlas-api`. |
 | `atlas update` | Pulls the latest Git changes with `git pull --ff-only`, then reruns the installer. |
 | `atlas migrate` | Runs database migrations through the `atlas-api` container. |
-| `atlas seed` | Seeds configured users, agents, memberships, and channel allowlists from `ecosystem/atlas.yaml`. |
-| `atlas profiles` | Regenerates Hermes `SOUL.md`, `skills.json`, and Honcho config files from the ecosystem config. |
+| `atlas seed` | Seeds configured users, agents, memberships, and identity metadata from `ecosystem/atlas.yaml`. |
+| `atlas profiles` | Regenerates Hermes `config.yaml`, `SOUL.md`, `skills.json`, Honcho config, and managed gateway allowlists from the ecosystem config. |
 | `atlas runtime` | Regenerates Hermes profiles and starts the Hermes Compose runtime profile. |
 | `atlas runtime-off` | Stops the Hermes runtime service. |
 | `atlas honcho` | Clones/prepares self-hosted Honcho and starts its Compose services. |
-| `atlas webhook` | Publishes the WhatsApp webhook path through Tailscale Funnel to the local Atlas API. |
+| `atlas webhook` | Publishes Hermes' WhatsApp Cloud webhook path through Tailscale Funnel. |
 | `atlas webhook-status` | Shows current Tailscale Funnel status. |
 | `atlas webhook-off` | Disables the configured Tailscale Funnel webhook path. |
 

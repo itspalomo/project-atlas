@@ -12,8 +12,8 @@ if [[ -f "$ROOT_DIR/.env" ]]; then
 fi
 
 FUNNEL_PORT="${TAILSCALE_FUNNEL_PORT:-443}"
-FUNNEL_PATH="${TAILSCALE_FUNNEL_PATH:-/webhooks/whatsapp}"
-FUNNEL_TARGET="${TAILSCALE_FUNNEL_TARGET:-http://127.0.0.1:${ATLAS_API_PORT:-3000}}"
+FUNNEL_PATH="${TAILSCALE_FUNNEL_PATH:-${WHATSAPP_CLOUD_WEBHOOK_PATH:-/whatsapp/webhook}}"
+FUNNEL_TARGET="${TAILSCALE_FUNNEL_TARGET:-http://127.0.0.1:${WHATSAPP_CLOUD_WEBHOOK_PORT:-8090}}"
 
 SUDO=""
 if [[ "$(id -u)" -ne 0 ]]; then
@@ -61,7 +61,7 @@ case "${1:-on}" in
 
     dns_name="$(tailscale_dns_name)"
     if [[ -n "$dns_name" ]]; then
-      echo "WhatsApp webhook URL: https://${dns_name}${FUNNEL_PATH}"
+      echo "Hermes WhatsApp webhook URL: https://${dns_name}${FUNNEL_PATH}"
     else
       echo "Tailscale Funnel is configured. Run 'tailscale funnel status' to view the public URL."
     fi

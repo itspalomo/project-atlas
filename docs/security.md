@@ -4,17 +4,17 @@
 
 - PostgreSQL binds to `127.0.0.1`.
 - Honcho API binds to `127.0.0.1` on the host and stays on the private Compose network internally.
-- Hermes binds to `127.0.0.1`.
+- Hermes dashboard, gateway API, and WhatsApp Cloud webhook bind to `127.0.0.1` on the host.
 - Admin access uses Tailscale SSH.
-- WhatsApp Cloud API requires a public HTTPS webhook, but only `/webhooks/whatsapp` should be exposed through Tailscale Funnel.
+- WhatsApp Cloud API requires a public HTTPS webhook, but only Hermes' `/whatsapp/webhook` path should be exposed through Tailscale Funnel.
 
 ## WhatsApp Identity
 
-- Phone numbers are normalized to digits and stored in `identity_channels`.
-- Authorized identities are defined in `ecosystem/atlas.yaml` during install.
-- Unknown senders are rejected and logged.
-- Meta webhook signatures are verified with `WHATSAPP_APP_SECRET`.
-- The verification token is random and stored in `.env`.
+- Phone numbers are normalized to digits from `ecosystem/atlas.yaml`.
+- `atlas apply` writes those numbers to Hermes' managed `data/hermes/atlas.env` allowlists.
+- Hermes rejects unknown WhatsApp Cloud senders through `WHATSAPP_CLOUD_ALLOWED_USERS`.
+- Meta webhook signatures are verified by Hermes with `WHATSAPP_CLOUD_APP_SECRET`.
+- The Hermes verification token is random and stored in `.env` as `WHATSAPP_CLOUD_VERIFY_TOKEN`.
 
 ## iOS Bridge
 
@@ -32,7 +32,7 @@
 - Atlas API runs as a non-root user in the container.
 - Atlas API runs with a read-only root filesystem and `no-new-privileges`.
 - Hermes should not receive unrestricted host filesystem access.
-- Agent skills are data capability manifests, not authorization or persona guidance. Atlas still enforces identity, user scope, memory grants, and approvals.
+- Agent skills are data capability manifests, not authorization or persona guidance. Atlas still enforces structured-data scope and approvals; Hermes enforces gateway allowlists and memory-provider access.
 
 ## Approvals
 

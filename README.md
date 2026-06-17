@@ -1,21 +1,21 @@
 # Project Atlas
 
-Project Atlas is a private personal-agent ecosystem for individuals and families. Atlas owns identity, permissions, structured facts, approvals, integrations, and memory boundaries. Hermes is the initial runtime, but the runtime is treated as replaceable.
+Project Atlas is a private personal-agent ecosystem for individuals and families. Atlas owns identity, permissions, structured facts, approvals, integrations, and generated runtime configuration. Hermes is the initial runtime and owns the agent loop, including its native memory-provider integration.
 
 Atlas is self-serve. A local `ecosystem/atlas.yaml` file defines the users, their WhatsApp identities, shared or personal agents, routing aliases, Hermes profiles, and Honcho memory workspaces for each installation. The repository does not ship with named built-in people.
 
 ## What Is Included
 
 - Docker Compose for Atlas API, PostgreSQL, self-hosted Honcho, and Hermes.
-- Tailscale Funnel setup for the public WhatsApp webhook edge.
+- Tailscale Funnel setup for the public Hermes WhatsApp webhook edge.
 - PostgreSQL schema for identities, agents, allowlisted channels, approvals, audit logs, health summaries, nutrition intake, calendar availability, reminders, and goals.
-- WhatsApp Business Cloud API webhook scaffold with signature verification and sender allowlisting.
+- Hermes WhatsApp gateway allowlist generation from the local ecosystem config.
 - iOS bridge API scaffold for privacy-preserving HealthKit, calendar availability, semantic location, reminders, and approvals.
 - Lightweight nutrition intake bridge for calories, macros, fiber, hydration, and source confidence.
 - Deterministic training tables for plans, planned workouts, performed workouts, exercises, and sets.
 - Baked-in agent skill catalog for household coordination, planning, calendar, reminders, health, training, nutrition, semantic location, memory, and WhatsApp behavior.
 - Self-serve ecosystem config generator.
-- Hermes profile and Honcho config generation from the local ecosystem config.
+- Hermes profile config generation, including native Honcho memory-provider config, from the local ecosystem config.
 - Honcho self-hosting setup wired into the default installer.
 - `atlas` CLI wrapper for install, configure, apply, status, logs, runtime, webhook, and updates.
 - Cross-platform installer script for macOS and Linux VPS hosts.
@@ -71,8 +71,8 @@ Runtime checks:
 
 - Hermes dashboard/API ports bind to localhost by default.
 - Honcho API binds to localhost on the host and is reachable inside Compose as `http://honcho-api:8000`.
-- WhatsApp webhook requests require Meta signature verification when `WHATSAPP_APP_SECRET` is set.
-- Only phone numbers seeded into `identity_channels` can route messages to agents.
+- Hermes WhatsApp Cloud webhook requests require Meta signature verification when `WHATSAPP_CLOUD_APP_SECRET` is set.
+- Only phone numbers generated into Hermes' WhatsApp gateway allowlists can reach the agent loop.
 - iOS bridge writes structured summaries and availability windows, not raw health samples, raw calendar event details, or raw location history.
 - Sensitive actions are modeled as approvals before execution.
 

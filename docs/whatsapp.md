@@ -1,30 +1,51 @@
 # WhatsApp
 
-Atlas uses WhatsApp Business Cloud API for the production messaging surface.
+Atlas uses Hermes' native WhatsApp gateway for messaging. Atlas does not need to reimplement the WhatsApp webhook path to control who can talk to the agent.
 
-## Meta App Settings
+## Recommended Path
 
-Configure the webhook callback URL with the Tailscale Funnel URL printed by `scripts/atlasctl webhook`:
-
-```text
-https://<your-node>.<tailnet>.ts.net/webhooks/whatsapp
-```
-
-Use `WHATSAPP_VERIFY_TOKEN` from `.env` as the webhook verification token.
-
-Required environment variables:
+For production, use Hermes WhatsApp Business Cloud API:
 
 ```bash
-WHATSAPP_GRAPH_API_VERSION=v24.0
-WHATSAPP_PHONE_NUMBER_ID=<phone-number-id>
-WHATSAPP_ACCESS_TOKEN=<system-user-token>
-WHATSAPP_APP_SECRET=<meta-app-secret>
-WHATSAPP_VERIFY_TOKEN=<random-token>
+atlas apply
+atlas runtime
+atlas webhook
 ```
 
-## Allowlisting
+`atlas apply` generates `data/hermes/atlas.env` from `ecosystem/atlas.yaml`. That file sets both Hermes allowlists:
 
-Allowed senders are defined in `ecosystem/atlas.yaml`:
+```bash
+WHATSAPP_ALLOWED_USERS=15551234567,15557654321
+WHATSAPP_CLOUD_ALLOWED_USERS=15551234567,15557654321
+```
+
+Phone numbers are normalized to country-code digits without `+`, spaces, or dashes. Hermes denies inbound WhatsApp Cloud messages not on `WHATSAPP_CLOUD_ALLOWED_USERS`.
+
+## Hermes Cloud Credentials
+
+Configure the Cloud API credentials in `.env` or with Hermes' own setup wizard:
+
+```bash
+WHATSAPP_CLOUD_PHONE_NUMBER_ID=<phone-number-id>
+WHATSAPP_CLOUD_ACCESS_TOKEN=<system-user-token>
+WHATSAPP_CLOUD_APP_SECRET=<meta-app-secret>
+WHATSAPP_CLOUD_VERIFY_TOKEN=<random-token>
+WHATSAPP_CLOUD_WEBHOOK_HOST=0.0.0.0
+WHATSAPP_CLOUD_WEBHOOK_PORT=8090
+WHATSAPP_CLOUD_WEBHOOK_PATH=/whatsapp/webhook
+```
+
+`atlas webhook` publishes the Hermes webhook through Tailscale Funnel. Use the printed URL as the Meta callback URL:
+
+```text
+https://<your-node>.<tailnet>.ts.net/whatsapp/webhook
+```
+
+Use `WHATSAPP_CLOUD_VERIFY_TOKEN` as the Meta webhook verification token.
+
+## Allowed Users
+
+Allowed senders are defined once in `ecosystem/atlas.yaml`:
 
 ```yaml
 users:
@@ -36,28 +57,14 @@ users:
         defaultAgent: household
 ```
 
-Run this after editing the file:
+Run `atlas apply` after editing identities. Atlas regenerates Hermes' managed allowlist file and reseeds Atlas' structured identity tables.
+
+## Personal WhatsApp Bridge
+
+For a personal number or quick testing, use Hermes' Baileys bridge instead of Cloud API:
 
 ```bash
-scripts/atlasctl seed
+hermes whatsapp
 ```
 
-Shared-agent routing is command-based in v1 and configured per agent:
-
-```text
-family: what should we cook this week?
-/family plan chores for Saturday
-```
-
-Group chat routing is intentionally deferred until the privacy and sender attribution model is explicit.
-
-## Webhook Behavior
-
-- `GET /webhooks/whatsapp` verifies the Meta challenge.
-- `POST /webhooks/whatsapp` verifies `X-Hub-Signature-256` when `WHATSAPP_APP_SECRET` is set.
-- Text messages from authorized senders are routed to the mapped agent.
-- Non-text messages are ignored in v1.
-- Unknown senders are audited and ignored by default.
-- Duplicate webhook deliveries for the same WhatsApp message id are ignored after the first insert, preventing duplicate agent replies.
-
-Set `WHATSAPP_SEND_UNAUTHORIZED_REPLY=true` only if you want unknown senders to receive a rejection message.
+The same generated `WHATSAPP_ALLOWED_USERS` value in `data/hermes/atlas.env` applies to Hermes' Baileys bridge. Generated Hermes `config.yaml` sets unauthorized WhatsApp DMs to `ignore` for private installs.

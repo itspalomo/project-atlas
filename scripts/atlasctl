@@ -43,14 +43,14 @@ Services:
 
 Data/runtime:
   migrate      Run Postgres migrations
-  seed         Seed users, agents, and WhatsApp allowlist
-  profiles     Generate Hermes SOUL.md, skills.json, and honcho.json files
+  seed         Seed users, agents, and identity metadata
+  profiles     Generate Hermes config.yaml, SOUL.md, skills.json, and honcho.json files
   runtime      Start Hermes runtime profile
   runtime-off  Stop Hermes runtime profile
   honcho       Clone/start self-hosted Honcho
 
 Webhook:
-  webhook       Publish WhatsApp webhook through Tailscale Funnel
+  webhook       Publish Hermes WhatsApp webhook through Tailscale Funnel
   webhook-status
                 Show Tailscale Funnel status
   webhook-off   Turn off the configured Funnel webhook path
