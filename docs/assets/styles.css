@@ -1,0 +1,263 @@
+:root {
+  --atlas-ink: #14201d;
+  --atlas-muted: #5a6863;
+  --atlas-paper: #fbfaf6;
+  --atlas-panel: #fffdf7;
+  --atlas-line: #ded4be;
+  --atlas-green: #1f6f68;
+  --atlas-green-dark: #134b47;
+  --atlas-gold: #d9a441;
+  --atlas-clay: #9f513f;
+  --atlas-blue: #365f82;
+  --atlas-code: #0f1f1c;
+}
+
+html,
+body {
+  background: var(--atlas-paper);
+  color: var(--atlas-ink);
+}
+
+body {
+  font-family:
+    Aptos,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  letter-spacing: 0;
+}
+
+.app-name-link img {
+  max-height: 34px;
+}
+
+.sidebar {
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.96), rgba(245, 241, 231, 0.96)),
+    repeating-linear-gradient(90deg, rgba(31, 111, 104, 0.05) 0 1px, transparent 1px 36px);
+  border-right: 1px solid var(--atlas-line);
+}
+
+.sidebar h1 a {
+  color: var(--atlas-green-dark);
+  font-weight: 780;
+  letter-spacing: 0;
+}
+
+.sidebar ul li a {
+  color: #273530;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.sidebar ul li.active > a {
+  border-right: 3px solid var(--atlas-green);
+  color: var(--atlas-green-dark);
+  font-weight: 720;
+}
+
+.markdown-section {
+  max-width: 1040px;
+  padding: 36px 44px 72px;
+}
+
+.markdown-section h1,
+.markdown-section h2,
+.markdown-section h3 {
+  color: var(--atlas-ink);
+  letter-spacing: 0;
+}
+
+.markdown-section h1 {
+  font-size: 42px;
+  line-height: 1.05;
+  margin-bottom: 18px;
+}
+
+.markdown-section h2 {
+  border-bottom: 1px solid var(--atlas-line);
+  padding-bottom: 8px;
+  margin-top: 42px;
+}
+
+.markdown-section p,
+.markdown-section li {
+  color: #26322e;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.markdown-section a {
+  color: var(--atlas-green);
+  font-weight: 650;
+}
+
+.markdown-section blockquote {
+  background: #eef6f2;
+  border-left: 4px solid var(--atlas-green);
+  border-radius: 0 6px 6px 0;
+  color: #20312d;
+  padding: 14px 18px;
+}
+
+.markdown-section table {
+  border: 1px solid var(--atlas-line);
+  border-radius: 8px;
+  display: table;
+  overflow: hidden;
+  width: 100%;
+}
+
+.markdown-section th {
+  background: #e8f0ec;
+  color: #15231f;
+  font-weight: 750;
+}
+
+.markdown-section td,
+.markdown-section th {
+  border: 1px solid #e8dfcb;
+  padding: 10px 12px;
+}
+
+.markdown-section code {
+  background: #ede7da;
+  border-radius: 4px;
+  color: var(--atlas-code);
+  font-size: 0.9em;
+  padding: 0.15em 0.35em;
+}
+
+.markdown-section pre {
+  background: #11221f;
+  border: 1px solid #27423c;
+  border-radius: 8px;
+  box-shadow: 0 16px 36px rgba(27, 38, 34, 0.12);
+}
+
+.markdown-section pre > code {
+  background: transparent;
+  color: #f5f0e4;
+  padding: 0;
+}
+
+.cover {
+  background:
+    radial-gradient(circle at 20% 18%, rgba(249, 213, 126, 0.32), transparent 28%),
+    radial-gradient(circle at 82% 22%, rgba(31, 111, 104, 0.18), transparent 32%),
+    linear-gradient(135deg, #fffdf7 0%, #f0eadb 54%, #e7f0ec 100%) !important;
+  color: var(--atlas-ink);
+}
+
+.cover .cover-main {
+  max-width: 1060px;
+}
+
+.cover h1 {
+  color: var(--atlas-green-dark);
+  font-size: clamp(44px, 7vw, 86px);
+  letter-spacing: 0;
+  margin-bottom: 10px;
+}
+
+.cover blockquote {
+  border: 0;
+  color: #31413b;
+  font-size: 20px;
+  margin: 0 auto 28px;
+  max-width: 760px;
+}
+
+.cover .anchor span {
+  color: var(--atlas-green-dark);
+}
+
+.cover a {
+  border-radius: 6px !important;
+  border-color: var(--atlas-green) !important;
+  color: var(--atlas-green-dark) !important;
+  font-weight: 750;
+  margin: 6px 8px;
+}
+
+.cover a:first-of-type {
+  background: var(--atlas-green) !important;
+  color: #fffdf7 !important;
+}
+
+.atlas-callout,
+.atlas-grid > p,
+.atlas-card {
+  background: var(--atlas-panel);
+  border: 1px solid var(--atlas-line);
+  border-radius: 8px;
+  box-shadow: 0 14px 32px rgba(40, 52, 47, 0.09);
+}
+
+.atlas-callout {
+  border-left: 5px solid var(--atlas-green);
+  padding: 16px 18px;
+}
+
+.atlas-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin: 22px 0;
+}
+
+.atlas-grid > p,
+.atlas-card {
+  margin: 0;
+  padding: 18px;
+}
+
+.atlas-diagram {
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.98), rgba(247, 243, 233, 0.98)),
+    repeating-linear-gradient(0deg, rgba(31, 111, 104, 0.045) 0 1px, transparent 1px 26px);
+  border: 1px solid var(--atlas-line);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 18px 42px rgba(30, 44, 39, 0.11);
+  margin: 24px 0 34px;
+  overflow-x: auto;
+  padding: 22px;
+}
+
+.atlas-diagram svg {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+}
+
+.markdown-section .diagram-key {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-top: -10px;
+}
+
+.diagram-key span {
+  border-left: 4px solid var(--atlas-green);
+  background: #fffdf7;
+  border-radius: 6px;
+  color: #22312d;
+  padding: 10px 12px;
+}
+
+@media (max-width: 780px) {
+  .markdown-section {
+    padding: 24px 20px 64px;
+  }
+
+  .markdown-section h1 {
+    font-size: 34px;
+  }
+
+  .cover h1 {
+    font-size: 46px;
+  }
+}

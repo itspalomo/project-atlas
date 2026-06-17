@@ -1,87 +1,181 @@
 # Architecture
 
-Project Atlas separates the ecosystem from the agent runtime. The ecosystem is installer-defined through `ecosystem/atlas.yaml`; there are no hard-coded household members or built-in personal agents.
+Atlas separates the installer's deterministic control plane from Hermes' runtime. The system is intentionally small: Atlas defines users, profile membership, bridge permissions, deterministic facts, approvals, and generated config; Hermes owns conversation execution.
 
-Atlas owns:
+## Ownership Boundaries
 
-- Persistent user and agent identities.
-- Identity metadata and generated Hermes gateway allowlist values.
-- Atlas custom capability catalog and generated Hermes skill files.
-- Structured facts in PostgreSQL.
-- Honcho workspace names in generated Hermes profile config.
-- Atlas MCP tools for custom structured context.
-- Approval workflows.
-- Integration ingress and egress.
-- Audit logs.
+```mermaid
+flowchart TB
+  subgraph Edge["Public edge"]
+    WA["WhatsApp Cloud API"]
+    Funnel["Tailscale Funnel\n/whatsapp/webhook only"]
+  end
 
-Hermes owns:
+  subgraph Tailnet["Private VPS and tailnet"]
+    Admin["Admin over SSH/Tailscale"]
+    AtlasCLI["atlas CLI"]
+    API["Atlas API\nbridge + MCP + approvals"]
+    PG["Atlas PostgreSQL\nstructured facts"]
+    Hermes["Hermes runtime\nprofiles + gateways"]
+    Honcho["Honcho API\nlong-term memory"]
+    HPG["Honcho PostgreSQL + pgvector"]
+    HRedis["Honcho Redis"]
+  end
 
-- The runtime conversation loop.
-- Tool execution inside its configured sandbox.
-- Agent profile behavior.
-- Native skills and MCP tool discovery.
-- Native memory-provider activation and Honcho memory access.
+  subgraph Devices["User devices"]
+    IOS["iOS bridge app\nHealthKit, calendar, reminders, semantic location"]
+    User["Approved WhatsApp users"]
+  end
 
-Honcho owns:
+  WA --> Funnel --> Hermes
+  User --> WA
+  Admin --> AtlasCLI
+  AtlasCLI --> API
+  AtlasCLI --> Hermes
+  IOS -->|"device token + scoped writes"| API
+  Hermes -->|"Atlas MCP context + approvals"| API
+  API --> PG
+  Hermes -->|"native Honcho provider"| Honcho
+  Honcho --> HPG
+  Honcho --> HRedis
 
-- Long-term memory inside isolated workspaces.
+  classDef edge fill:#fff4cf,stroke:#d9a441,color:#1e1a0c,stroke-width:2px;
+  classDef private fill:#e8f0ec,stroke:#1f6f68,color:#10201d,stroke-width:2px;
+  classDef data fill:#eef2f7,stroke:#365f82,color:#101d2a,stroke-width:2px;
+  classDef device fill:#f5e8e4,stroke:#9f513f,color:#24120e,stroke-width:2px;
+  class WA,Funnel edge;
+  class Admin,AtlasCLI,API,Hermes,Honcho private;
+  class PG,HPG,HRedis data;
+  class IOS,User device;
+```
 
-## Initial Topology
+<div class="diagram-key">
+<span>Gold: public WhatsApp edge</span>
+<span>Green: private runtime/control plane</span>
+<span>Blue: durable data stores</span>
+<span>Clay: user-owned devices</span>
+</div>
+
+## Runtime Ownership
+
+| Component | Owns | Does Not Own |
+| --- | --- | --- |
+| Hermes | Messaging, profiles, gateway allowlists, native skills, MCP discovery, model/provider auth, memory-provider execution | Atlas bridge storage, approval records, deterministic fact schema |
+| Atlas | Installer, identity metadata, generated profile config, bridge API, MCP context endpoint, approvals, audit logs | Chat proxying, LLM calls, persona management, raw HealthKit/calendar/location data |
+| Honcho | Long-term conversational memory inside configured workspaces | Structured facts, access policy, bridge device pairing |
+| iOS bridge | Local Apple data access and local Apple writes | Agent runtime behavior |
+
+## Profile And Memory Topology
+
+One Hermes container with many profiles is the default. Use separate containers only for hard isolation requirements such as resource limits, network segmentation, image pinning, or compliance boundaries.
+
+```mermaid
+flowchart LR
+  subgraph Config["ecosystem/atlas.yaml"]
+    U1["user: jose\nwhatsapp: +1..."]
+    U2["user: spouse\nwhatsapp: +1..."]
+    A1["agent: jose\nprofile: jose\nworkspace: jose"]
+    A2["agent: spouse\nprofile: spouse\nworkspace: spouse"]
+    A3["agent: family\nprofile: family\nworkspace: family"]
+  end
+
+  subgraph HermesBox["one Hermes container"]
+    P1["profile jose\npersonal gateway"]
+    P2["profile spouse\npersonal gateway"]
+    P3["profile family\nshared gateway"]
+  end
+
+  subgraph Memory["Honcho workspaces"]
+    M1["workspace jose"]
+    M2["workspace spouse"]
+    M3["workspace family"]
+  end
+
+  U1 --> A1 --> P1 --> M1
+  U2 --> A2 --> P2 --> M2
+  U1 --> A3
+  U2 --> A3
+  A3 --> P3 --> M3
+
+  classDef config fill:#fffdf7,stroke:#d7c9aa,color:#14201d,stroke-width:2px;
+  classDef hermes fill:#fff4cf,stroke:#d9a441,color:#241b0a,stroke-width:2px;
+  classDef memory fill:#eef2f7,stroke:#365f82,color:#101d2a,stroke-width:2px;
+  class U1,U2,A1,A2,A3 config;
+  class P1,P2,P3 hermes;
+  class M1,M2,M3 memory;
+```
+
+Profiles have separate memory by default because Atlas generates separate Honcho workspace names. If two profiles should intentionally share memory, set the same `honchoWorkspace` in `ecosystem/atlas.yaml`.
+
+## Message And Context Flow
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant User as Authorized user
+  participant WA as WhatsApp Cloud
+  participant H as Hermes profile gateway
+  participant MCP as Atlas MCP endpoint
+  participant DB as Atlas PostgreSQL
+  participant HC as Honcho
+
+  User->>WA: Send message
+  WA->>H: Signed webhook delivery
+  H->>H: Verify sender allowlist
+  H->>HC: Read/write native memory
+  H->>MCP: Request Atlas deterministic context when needed
+  MCP->>DB: Read scoped facts and approvals
+  DB-->>MCP: Context snapshot
+  MCP-->>H: Scoped facts
+  H-->>WA: Response
+  WA-->>User: Delivered reply
+```
+
+Hermes rejects unknown WhatsApp senders before the agent loop. Atlas still stores identity records because the bridge, approvals, audit logs, and scoped context need deterministic user/profile relationships.
+
+## iOS Bridge Flow
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant App as iOS bridge
+  participant User as User
+  participant Atlas as Atlas API
+  participant DB as PostgreSQL
+  participant Hermes as Hermes
+
+  App->>User: Ask for HealthKit/EventKit/Reminders permissions
+  User-->>App: Grants selected scopes
+  App->>Atlas: Register device with bootstrap token
+  Atlas-->>App: Device id + one-time token
+  App->>Atlas: Send summaries, busy blocks, semantic location, approvals
+  Atlas->>DB: Upsert scoped structured facts
+  Hermes->>Atlas: Read context through Atlas MCP
+  Atlas-->>Hermes: Only authorized summaries and deterministic facts
+```
+
+The bridge sends summaries and availability windows, not raw health samples, full calendar bodies, or raw location history by default.
+
+## Data Boundary
 
 ```mermaid
 flowchart TD
-  CFG["ecosystem/atlas.yaml"] --> API["Atlas API"]
-  CFG --> PROF["Generated Hermes profiles"]
-  WA["WhatsApp Cloud API"] -->|"signed webhook"| H
-  IOS["iOS Bridge"] -->|"private bridge API"| API
-  API --> PG["Atlas PostgreSQL"]
-  H -->|"Atlas MCP tools + approvals"| API
-  H --> HC["Self-hosted Honcho API"]
-  HC --> HPG["Honcho PostgreSQL + pgvector"]
-  HC --> HR["Honcho Redis"]
-  PROF --> H
-  Admin["Admin over Tailscale"] --> API
-  Admin --> H
-  Admin --> HC
+  Memory["Honcho memory\npreferences, observations, conversational memory"]
+  Facts["PostgreSQL facts\nidentity, health summaries, training, nutrition, busy blocks, approvals"]
+  Bridge["iOS bridge\nlocal Apple data boundary"]
+  Hermes["Hermes\nreasoning + tools"]
+  User["User consent"]
+
+  User --> Bridge
+  Bridge -->|"summaries + approved writes"| Facts
+  Hermes -->|"native provider"| Memory
+  Hermes -->|"MCP queries"| Facts
+  Facts -->|"scoped snapshots"| Hermes
+
+  classDef memory fill:#eef2f7,stroke:#365f82,color:#101d2a,stroke-width:2px;
+  classDef facts fill:#e8f0ec,stroke:#1f6f68,color:#10201d,stroke-width:2px;
+  classDef bridge fill:#f5e8e4,stroke:#9f513f,color:#24120e,stroke-width:2px;
+  class Memory memory;
+  class Facts,Hermes facts;
+  class Bridge,User bridge;
 ```
-
-## Hermes Profile Topology
-
-Atlas treats each configured agent as a Hermes profile. For example:
-
-- `jose`: a personal Hermes profile with Jose's WhatsApp number in that profile's `.env` allowlist.
-- `wife`: a personal Hermes profile with the spouse's WhatsApp number in that profile's `.env` allowlist.
-- `family`: a shared Hermes profile with both numbers in that profile's `.env` allowlist and its own Honcho workspace.
-
-The default deployment is one Hermes container supervising all profiles. This matches Hermes' native Docker profile model and keeps upgrades, logs, backups, and profile creation simpler. Use one container per profile only for hard isolation needs such as separate resource limits, network segmentation, image pinning, or compliance boundaries.
-
-Profiles have separate memory by default because Atlas generates separate Honcho workspace names. If two profiles should intentionally view the same memory, set the same `honchoWorkspace` for those agents in `ecosystem/atlas.yaml`. If profiles should talk to each other, prefer Hermes-native profile/gateway/tooling patterns; Atlas should not proxy those conversations.
-
-## WhatsApp Rules
-
-- Allowed WhatsApp numbers are defined in `ecosystem/atlas.yaml`.
-- Atlas merges Hermes' `WHATSAPP_ALLOWED_USERS` and `WHATSAPP_CLOUD_ALLOWED_USERS` values into each profile's `.env` without overwriting Hermes-owned credentials.
-- Hermes' WhatsApp gateway rejects unknown senders before the agent loop.
-- Atlas still stores identity records for bridge scoping, structured facts, approvals, and audit trails.
-
-## Structured Data Versus Memory
-
-PostgreSQL is the source of truth for facts:
-
-- Identity records
-- Health summaries
-- Nutrition intake summaries
-- Training plans, planned workouts, performed workouts, exercises, and sets
-- Calendar busy blocks
-- Reminders
-- Goals
-- Approvals
-- Audit logs
-
-Honcho is the memory layer for conversational and preference memory. Atlas generates Hermes profile-local `honcho.json` files with the intended workspace ids, and Hermes uses its native Honcho memory provider to read and write memory. Atlas does not merge workspaces automatically.
-
-## Native Skills And Custom Capabilities
-
-Hermes owns the native skill system. Atlas capability ids are configured per agent in `ecosystem/atlas.yaml`; Atlas validates those ids, stores them as deterministic metadata, and generates a profile-local Hermes skill at `skills/atlas-context/SKILL.md`.
-
-Atlas custom data is exposed to Hermes through the generated `mcp_servers.atlas` config and the `atlas_get_context` MCP tool. Hermes remains the reasoning runtime; Atlas provides scoped facts, bridge context, generated memory-provider config, and approval records. WhatsApp identity is enforced by Hermes gateway allowlists; bridge data scoping and approvals remain enforced by Atlas API and the iOS bridge.
