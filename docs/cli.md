@@ -18,8 +18,8 @@
 | `atlas update` | Pulls the latest Git changes with `git pull --ff-only`, then reruns the installer. |
 | `atlas migrate` | Runs database migrations through the `atlas-api` container. |
 | `atlas seed` | Seeds configured users, agents, memberships, and identity metadata from `ecosystem/atlas.yaml`. |
-| `atlas profiles` | Merges Atlas-managed Hermes `config.yaml` settings, updates the native `skills/atlas-context/SKILL.md`, writes `atlas-capabilities.json`, Honcho config, MCP config, and managed gateway allowlists from the ecosystem config. |
-| `atlas runtime` | Regenerates Hermes profiles and starts the Hermes Compose runtime profile. |
+| `atlas profiles` | Merges Atlas-managed Hermes `config.yaml` settings, updates the native `skills/atlas-context/SKILL.md`, writes `atlas-capabilities.json`, Honcho config, MCP config, managed gateway allowlists, and the generated runtime Compose override from the ecosystem config. |
+| `atlas runtime` | Regenerates Hermes profiles and starts all configured Hermes runtime groups. |
 | `atlas runtime-off` | Stops the Hermes runtime service. |
 | `atlas honcho` | Clones/prepares self-hosted Honcho and starts its Compose services. |
 | `atlas webhook` | Publishes Hermes' WhatsApp Cloud webhook path through Tailscale Funnel. |

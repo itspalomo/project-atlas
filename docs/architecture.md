@@ -65,47 +65,63 @@ flowchart TB
 | Honcho | Long-term conversational memory inside configured workspaces | Structured facts, access policy, bridge device pairing |
 | iOS bridge | Local Apple data access and local Apple writes | Agent runtime behavior |
 
-## Profile And Memory Topology
+## Profile, Runtime Group, And Memory Topology
 
-One Hermes container with many profiles is the default. Use separate containers only for hard isolation requirements such as resource limits, network segmentation, image pinning, or compliance boundaries.
+Atlas supports both layouts without hardcoded users:
+
+- One runtime group: one Hermes container supervising many Hermes profiles.
+- Multiple runtime groups: one Hermes container per configured runtime group.
+
+Use separate runtime groups when you need hard isolation for resources, network policy, image versioning, channel credentials, or operational blast radius.
 
 ```mermaid
 flowchart LR
   subgraph Config["ecosystem/atlas.yaml"]
-    U1["user: jose\nwhatsapp: +1..."]
-    U2["user: spouse\nwhatsapp: +1..."]
-    A1["agent: jose\nprofile: jose\nworkspace: jose"]
-    A2["agent: spouse\nprofile: spouse\nworkspace: spouse"]
-    A3["agent: family\nprofile: family\nworkspace: family"]
+    U1["user: member-one\nwhatsapp: +1..."]
+    U2["user: member-two\nwhatsapp: +1..."]
+    G1["runtimeGroup: member-one-private"]
+    G2["runtimeGroup: member-two-private"]
+    G3["runtimeGroup: shared-household"]
+    A1["agent: member-one-assistant\nprofile: member-one-assistant"]
+    A2["agent: member-two-assistant\nprofile: member-two-assistant"]
+    A3["agent: household\nprofile: household"]
   end
 
-  subgraph HermesBox["one Hermes container"]
-    P1["profile jose\npersonal gateway"]
-    P2["profile spouse\npersonal gateway"]
-    P3["profile family\nshared gateway"]
+  subgraph RuntimeOne["container: hermes-member-one-private"]
+    P1["profile member-one-assistant"]
+  end
+
+  subgraph RuntimeTwo["container: hermes-member-two-private"]
+    P2["profile member-two-assistant"]
+  end
+
+  subgraph RuntimeShared["container: hermes-shared-household"]
+    P3["profile household"]
   end
 
   subgraph Memory["Honcho workspaces"]
-    M1["workspace jose"]
-    M2["workspace spouse"]
-    M3["workspace family"]
+    M1["workspace member-one-assistant"]
+    M2["workspace member-two-assistant"]
+    M3["workspace household"]
   end
 
-  U1 --> A1 --> P1 --> M1
-  U2 --> A2 --> P2 --> M2
+  U1 --> A1 --> G1 --> P1 --> M1
+  U2 --> A2 --> G2 --> P2 --> M2
   U1 --> A3
   U2 --> A3
-  A3 --> P3 --> M3
+  A3 --> G3 --> P3 --> M3
 
   classDef config fill:#fffdf7,stroke:#d7c9aa,color:#14201d,stroke-width:2px;
   classDef hermes fill:#fff4cf,stroke:#d9a441,color:#241b0a,stroke-width:2px;
   classDef memory fill:#eef2f7,stroke:#365f82,color:#101d2a,stroke-width:2px;
-  class U1,U2,A1,A2,A3 config;
+  class U1,U2,G1,G2,G3,A1,A2,A3 config;
   class P1,P2,P3 hermes;
   class M1,M2,M3 memory;
 ```
 
 Profiles have separate memory by default because Atlas generates separate Honcho workspace names. If two profiles should intentionally share memory, set the same `honchoWorkspace` in `ecosystem/atlas.yaml`.
+
+The shared agent is not a merge of the private agents. It is a separate Hermes profile with its own workspace and membership. Private facts or memories should reach it only through explicit shared facts, matching workspace configuration, or approval-based grants.
 
 ## Message And Context Flow
 

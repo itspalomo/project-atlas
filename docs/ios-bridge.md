@@ -32,7 +32,7 @@ Default sync sends only availability:
 
 ```json
 {
-  "userId": "jose",
+  "userId": "member-one",
   "windowStart": "2026-06-16T00:00:00.000Z",
   "windowEnd": "2026-06-23T00:00:00.000Z",
   "blocks": [

@@ -45,6 +45,7 @@ It asks for:
 | Install label | Friendly name for admin output and generated metadata. Not a product name, auth setting, or persona. |
 | People | Users allowed to use the private system. WhatsApp numbers become Hermes allowlists. |
 | Agents | Hermes profiles. A profile can be personal or shared. |
+| Runtime group | The Hermes container boundary. Use `default` for one container, or add named runtime groups for isolated containers. |
 | Hermes profile name | The profile directory/name Hermes uses. |
 | Honcho workspace | The memory workspace for that profile. Reuse only when you intentionally want shared memory. |
 | Atlas capabilities | Custom Atlas data surfaces exposed through one generated Hermes skill and MCP. |

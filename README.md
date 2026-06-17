@@ -2,7 +2,7 @@
 
 Project Atlas is a private, self-serve deployment and customization layer for Hermes agent ecosystems. It is designed for families and small trusted groups that want Hermes running on a private VPS over Tailscale, with self-hosted Honcho memory, WhatsApp access, and an iOS bridge for Apple-only data.
 
-Atlas stays intentionally light. Hermes owns messaging, profiles, native skills, MCP discovery, model/provider auth, gateway behavior, and memory-provider execution. Atlas provides installer workflows, identity metadata, generated Hermes profile customizations, structured facts, approvals, audit logs, and the iOS bridge API.
+Atlas stays intentionally light. Hermes owns messaging, profiles, native skills, MCP discovery, model/provider auth, gateway behavior, and memory-provider execution. Atlas provides installer workflows, identity metadata, configurable Hermes runtime groups, generated profile customizations, structured facts, approvals, audit logs, and the iOS bridge API.
 
 ## Documentation
 

@@ -53,8 +53,8 @@ Allowed senders are defined once in `ecosystem/atlas.yaml`:
 
 ```yaml
 users:
-  - id: parent-one
-    displayName: Parent One
+  - id: member-one
+    displayName: Member One
     identities:
       - channel: whatsapp
         externalId: "+15551234567"

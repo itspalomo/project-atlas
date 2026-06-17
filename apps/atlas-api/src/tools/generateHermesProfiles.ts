@@ -5,6 +5,10 @@ import { loadConfig } from "../config.js";
 import {
   agentHermesProfile,
   agentHonchoWorkspace,
+  agentRuntimeGroup,
+  ecosystemRuntimeGroups,
+  EcosystemAgent,
+  EcosystemRuntimeGroup,
   loadEcosystemConfig
 } from "../ecosystem/ecosystemConfig.js";
 import { renderAtlasCapabilitySkill, skillManifestForIds } from "../skills/skillCatalog.js";
@@ -24,12 +28,22 @@ async function main(): Promise<void> {
   await mkdir(outDir, { recursive: true });
   await mkdir(homeDir, { recursive: true });
 
+  const runtimeGroups = ecosystemRuntimeGroups(ecosystem);
+  const agentsByRuntimeGroup = agentsGroupedByRuntimeGroup(ecosystem.agents);
   const manifest = {
     project: ecosystem.project,
     honchoBaseUrl: config.honcho?.baseUrl ?? "http://honcho-api:8000",
+    runtimeGroups: runtimeGroups.map((group) => ({
+      ...group,
+      service: runtimeGroupServiceName(group.id),
+      home: runtimeGroupHomePath(group.id),
+      profilesDir: `${runtimeGroupHomePath(group.id)}/profiles`,
+      agents: agentsByRuntimeGroup.get(group.id)?.map((agent) => agent.id) ?? []
+    })),
     profiles: ecosystem.agents.map((agent) => ({
       id: agent.id,
       displayName: agent.displayName,
+      runtimeGroup: agentRuntimeGroup(agent),
       hermesProfile: agentHermesProfile(agent),
       honchoWorkspace: agentHonchoWorkspace(agent),
       capabilities: agent.skills,
@@ -38,8 +52,10 @@ async function main(): Promise<void> {
   };
 
   for (const agent of ecosystem.agents) {
+    const runtimeGroup = agentRuntimeGroup(agent);
     const profile = agentHermesProfile(agent);
-    const profileDir = path.join(outDir, profile);
+    const groupHomeDir = runtimeGroupHomeDir(homeDir, runtimeGroup);
+    const profileDir = path.join(groupHomeDir, "profiles", profile);
     const honchoWorkspace = agentHonchoWorkspace(agent);
     const skillManifest = skillManifestForIds(agent.skills);
     const allowedWhatsAppUsers = agentWhatsAppAllowedUsers(ecosystem, agent);
@@ -89,8 +105,127 @@ async function main(): Promise<void> {
     );
   }
 
+  await writeFile(
+    path.join(homeDir, "compose.runtime.yaml"),
+    yaml.dump(renderRuntimeCompose(runtimeGroups, agentsByRuntimeGroup), { noRefs: true, lineWidth: 120 }),
+    "utf8"
+  );
+  await writeFile(path.join(homeDir, "atlas-runtime-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   await writeFile(path.join(outDir, "atlas-profiles.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-  console.log(`Generated ${ecosystem.agents.length} Hermes profile(s) in ${outDir}`);
+  console.log(`Generated ${ecosystem.agents.length} Hermes profile(s) across ${runtimeGroups.length} runtime group(s) in ${homeDir}`);
+}
+
+function agentsGroupedByRuntimeGroup(agents: EcosystemAgent[]): Map<string, EcosystemAgent[]> {
+  const groups = new Map<string, EcosystemAgent[]>();
+
+  for (const agent of agents) {
+    const runtimeGroup = agentRuntimeGroup(agent);
+    groups.set(runtimeGroup, [...(groups.get(runtimeGroup) ?? []), agent]);
+  }
+
+  return groups;
+}
+
+function runtimeGroupHomeDir(homeDir: string, runtimeGroup: string): string {
+  return runtimeGroup === "default" ? homeDir : path.join(homeDir, "runtime-groups", runtimeGroup);
+}
+
+function runtimeGroupHomePath(runtimeGroup: string): string {
+  return runtimeGroup === "default" ? "data/hermes" : `data/hermes/runtime-groups/${runtimeGroup}`;
+}
+
+function runtimeGroupServiceName(runtimeGroup: string): string {
+  return runtimeGroup === "default" ? "hermes" : `hermes-${runtimeGroup}`;
+}
+
+function renderRuntimeCompose(
+  runtimeGroups: EcosystemRuntimeGroup[],
+  agentsByRuntimeGroup: Map<string, EcosystemAgent[]>
+): Record<string, unknown> {
+  const services: Record<string, unknown> = {};
+  const defaultGroupHasAgents = (agentsByRuntimeGroup.get("default") ?? []).length > 0;
+
+  if (!defaultGroupHasAgents) {
+    services.hermes = {
+      profiles: ["atlas-disabled"]
+    };
+  }
+
+  for (const group of runtimeGroups) {
+    if ((agentsByRuntimeGroup.get(group.id) ?? []).length === 0) {
+      continue;
+    }
+
+    if (group.id === "default") {
+      const defaultOverride = renderDefaultRuntimeService(group);
+      if (Object.keys(defaultOverride).length > 0) {
+        services.hermes = defaultOverride;
+      }
+      continue;
+    }
+
+    services[runtimeGroupServiceName(group.id)] = renderRuntimeService(group);
+  }
+
+  return {
+    services
+  };
+}
+
+function renderDefaultRuntimeService(group: EcosystemRuntimeGroup): Record<string, unknown> {
+  const ports = runtimeGroupPorts(group);
+
+  return ports.length > 0 ? { ports } : {};
+}
+
+function renderRuntimeService(group: EcosystemRuntimeGroup): Record<string, unknown> {
+  const service: Record<string, unknown> = {
+    image: "nousresearch/hermes-agent:latest",
+    restart: "unless-stopped",
+    command: "gateway run",
+    env_file: [
+      {
+        path: ".env",
+        required: false
+      }
+    ],
+    environment: {
+      HERMES_HOME: "/opt/data",
+      HONCHO_BASE_URL: "${HONCHO_BASE_URL:-http://honcho-api:8000}",
+      HONCHO_API_KEY: "${HONCHO_API_KEY:-}"
+    },
+    depends_on: {
+      "honcho-api": {
+        condition: "service_healthy"
+      }
+    },
+    volumes: [`./${runtimeGroupHomePath(group.id)}:/opt/data`],
+    security_opt: ["no-new-privileges:true"],
+    profiles: ["runtime"]
+  };
+  const ports = runtimeGroupPorts(group);
+
+  if (ports.length > 0) {
+    service.ports = ports;
+  }
+
+  return service;
+}
+
+function runtimeGroupPorts(group: EcosystemRuntimeGroup): string[] {
+  const ports: string[] = [];
+
+  if (group.ports.dashboard) {
+    ports.push(`127.0.0.1:${group.ports.dashboard}:9119`);
+  }
+  if (group.ports.gateway) {
+    ports.push(`127.0.0.1:${group.ports.gateway}:8642`);
+  }
+  if (group.ports.whatsappCloudWebhook) {
+    ports.push(`127.0.0.1:${group.ports.whatsappCloudWebhook}:8090`);
+  }
+
+  return ports;
 }
 
 function agentWhatsAppAllowedUsers(

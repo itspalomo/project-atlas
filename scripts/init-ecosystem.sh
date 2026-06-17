@@ -137,7 +137,7 @@ prompt_slug() {
     if is_slug "$PROMPT_RESULT"; then
       return 0
     fi
-    fail "Use letters, numbers, dashes, or underscores only. Example: household or parent-one."
+    fail "Use letters, numbers, dashes, or underscores only. Example: household or member-one."
   done
 }
 
@@ -329,12 +329,12 @@ for index in $(seq 1 "$user_count"); do
 
   default_user_id="user-$index"
   if [[ "$index" -eq 1 ]]; then
-    default_user_id="parent-one"
+    default_user_id="member-one"
   elif [[ "$index" -eq 2 ]]; then
-    default_user_id="parent-two"
+    default_user_id="member-two"
   fi
 
-  prompt_slug "User id" "$default_user_id" "Internal stable id. Use a short slug like jose, parent-one, or alex."
+  prompt_slug "User id" "$default_user_id" "Internal stable id. Use a short slug like member-one, member-two, or adult-one."
   user_id="$PROMPT_RESULT"
   while [[ "${#user_ids[@]}" -gt 0 ]] && array_contains "$user_id" "${user_ids[@]}"; do
     fail "That user id is already used."
@@ -357,6 +357,7 @@ section "3. Agents"
 info "An agent is the thing a user chats with. It can be shared, like a family agent, or personal."
 info "Each agent gets:"
 info "- a Hermes profile name, so Hermes knows which profile/config/gateway to run"
+info "- a runtime group, which is the Hermes container boundary; onboarding uses default, and you can add isolated groups later"
 info "- a Honcho workspace, so memory stays scoped to that agent"
 info "- Atlas capability switches, which generate a Hermes native skill for custom bridge/data facts"
 prompt_count "How many agents should Atlas create now?" "1" "Start with one shared family agent unless you already know you want multiple."
@@ -365,6 +366,7 @@ agent_count="$PROMPT_RESULT"
 agent_ids=()
 agent_names=()
 agent_types=()
+agent_runtime_groups=()
 agent_profiles=()
 agent_workspaces=()
 agent_members_csv=()
@@ -394,6 +396,7 @@ for index in $(seq 1 "$agent_count"); do
 
   prompt_choice "Agent type" "shared" "Use shared for a family/household agent. Use personal for an agent owned by one person." "shared,personal"
   agent_type="$PROMPT_RESULT"
+  runtime_group="default"
 
   while true; do
     if [[ "$agent_type" == "shared" ]]; then
@@ -437,6 +440,7 @@ for index in $(seq 1 "$agent_count"); do
   agent_ids+=("$agent_id")
   agent_names+=("$agent_name")
   agent_types+=("$agent_type")
+  agent_runtime_groups+=("$runtime_group")
   agent_profiles+=("$hermes_profile")
   agent_workspaces+=("$honcho_workspace")
   agent_members_csv+=("$members_csv")
@@ -488,6 +492,11 @@ project:
   id: $(yaml_quote "$project_id")
   name: $(yaml_quote "$project_name")
 
+runtimeGroups:
+  - id: "default"
+    displayName: "Default Hermes Runtime"
+    isolation: "container"
+
 users:
 YAML
 
@@ -526,6 +535,7 @@ YAML
     agent_id="${agent_ids[$index]}"
     agent_name="${agent_names[$index]}"
     agent_type="${agent_types[$index]}"
+    runtime_group="${agent_runtime_groups[$index]}"
     hermes_profile="${agent_profiles[$index]}"
     honcho_workspace="${agent_workspaces[$index]}"
     members_csv="${agent_members_csv[$index]}"
@@ -536,6 +546,7 @@ YAML
   - id: $(yaml_quote "$agent_id")
     displayName: $(yaml_quote "$agent_name")
     type: $(yaml_quote "$agent_type")
+    runtimeGroup: $(yaml_quote "$runtime_group")
     # Hermes auth/provider setup is handled by Hermes. Atlas only names the profile.
     hermesProfile: $(yaml_quote "$hermes_profile")
     # Honcho memory is isolated by workspace.

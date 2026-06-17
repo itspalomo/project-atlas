@@ -95,8 +95,8 @@ If `ecosystem/atlas.yaml` does not exist, the installer opens an onboarding ques
 
 ```yaml
 users:
-  - id: parent-one
-    displayName: Parent One
+  - id: member-one
+    displayName: Member One
     identities:
       - channel: whatsapp
         externalId: "+15551234567"
@@ -106,9 +106,10 @@ agents:
   - id: household
     displayName: Household Atlas
     type: shared
+    runtimeGroup: default
     honchoWorkspace: household
     members:
-      - parent-one
+      - member-one
     # Atlas custom capability ids. These generate a Hermes native atlas-context skill.
     skills:
       - household
@@ -132,7 +133,7 @@ scripts/init-hermes-profiles.sh
 docker compose --profile runtime up -d --build hermes
 ```
 
-`scripts/init-hermes-profiles.sh` writes profile directories under `data/hermes/profiles/`. Each configured agent becomes a Hermes profile. A typical family setup is three profiles: one personal profile for you, one personal profile for your spouse, and one shared family profile. Each generated profile includes:
+`scripts/init-hermes-profiles.sh` writes profile directories under `data/hermes/`. Each configured agent becomes a Hermes profile. By default, agents run in the `default` runtime group. For hard isolation, configure multiple `runtimeGroups`; Atlas will generate one Hermes service per runtime group. Each generated profile includes:
 
 - `config.yaml` with `memory.provider: honcho` and `mcp_servers.atlas`.
 - `.env` with that profile's Atlas-managed Hermes WhatsApp allowlist block, preserving other Hermes-owned credentials.
@@ -140,7 +141,37 @@ docker compose --profile runtime up -d --build hermes
 - `atlas-capabilities.json` for deterministic Atlas metadata.
 - A profile-local `honcho.json` pointing at the self-hosted Honcho API.
 
-Compose mounts `data/hermes` at `/opt/data`, which is the Hermes data root in the container. The default topology is one Hermes container supervising all profiles. Use separate Hermes containers only when you need hard isolation for resources, networks, image versions, or compliance boundaries.
+Compose mounts each runtime group's Hermes home at `/opt/data`. The default topology is one Hermes container supervising all profiles. Use separate runtime groups only when you need hard isolation for resources, networks, image versions, credentials, or compliance boundaries.
+
+Isolated runtime group example:
+
+```yaml
+runtimeGroups:
+  - id: member-one-private
+    isolation: container
+    ports:
+      dashboard: 9121
+      gateway: 8651
+      whatsappCloudWebhook: 8091
+
+  - id: shared-household
+    isolation: container
+    ports:
+      dashboard: 9123
+      gateway: 8653
+      whatsappCloudWebhook: 8093
+
+agents:
+  - id: member-one-assistant
+    type: personal
+    runtimeGroup: member-one-private
+
+  - id: household
+    type: shared
+    runtimeGroup: shared-household
+```
+
+See `ecosystem/examples/isolated-runtime-groups.yaml` for a complete neutral example.
 
 ## Honcho
 

@@ -1,7 +1,7 @@
 import { createPool } from "./pool.js";
 import { normalizePhoneNumber } from "../identity/phone.js";
 import { loadConfig } from "../config.js";
-import { agentHermesProfile, agentHonchoWorkspace, loadEcosystemConfig } from "../ecosystem/ecosystemConfig.js";
+import { agentHermesProfile, agentHonchoWorkspace, agentRuntimeGroup, loadEcosystemConfig } from "../ecosystem/ecosystemConfig.js";
 import { skillManifestForIds } from "../skills/skillCatalog.js";
 
 const supportedIdentityChannels = ["whatsapp"] as const;
@@ -75,6 +75,7 @@ async function main(): Promise<void> {
           hermesProfile,
           honchoWorkspace,
           JSON.stringify({
+            runtimeGroup: agentRuntimeGroup(agent),
             skills: agent.skills,
             skillManifest
           })

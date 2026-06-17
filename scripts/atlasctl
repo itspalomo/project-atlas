@@ -78,6 +78,19 @@ api_health() {
   fi
 }
 
+compose_cmd() {
+  local runtime_compose="${HERMES_HOME_DIR:-$ROOT_DIR/data/hermes}/compose.runtime.yaml"
+  if [[ -f "$runtime_compose" ]]; then
+    docker compose -f compose.yaml -f "$runtime_compose" "$@"
+  else
+    docker compose "$@"
+  fi
+}
+
+runtime_services() {
+  compose_cmd --profile runtime config --services 2>/dev/null | grep '^hermes' || true
+}
+
 case "$command" in
   install)
     scripts/install.sh
@@ -131,27 +144,27 @@ case "$command" in
     else
       echo "tailscale: missing"
     fi
-    docker compose ps 2>/dev/null || true
+    compose_cmd ps 2>/dev/null || true
     api_health
     ;;
   up|start)
-    docker compose up -d --build
+    compose_cmd up -d --build
     ;;
   down|stop)
-    docker compose down
+    compose_cmd down
     ;;
   restart)
-    docker compose up -d --build atlas-api
+    compose_cmd up -d --build atlas-api
     ;;
   status)
-    docker compose ps
+    compose_cmd ps
     api_health
     ;;
   logs)
     if [[ -n "${1:-}" ]]; then
-      docker compose logs -f --tail=200 "$1"
+      compose_cmd logs -f --tail=200 "$1"
     else
-      docker compose logs -f --tail=200
+      compose_cmd logs -f --tail=200
     fi
     ;;
   update)
@@ -182,10 +195,14 @@ case "$command" in
     ;;
   runtime)
     scripts/init-hermes-profiles.sh
-    docker compose --profile runtime up -d --build hermes
+    compose_cmd --profile runtime up -d --build
     ;;
   runtime-off)
-    docker compose --profile runtime stop hermes
+    services="$(runtime_services)"
+    if [[ -n "$services" ]]; then
+      # shellcheck disable=SC2086
+      compose_cmd --profile runtime stop $services
+    fi
     ;;
   webhook)
     scripts/setup-tailscale-funnel.sh

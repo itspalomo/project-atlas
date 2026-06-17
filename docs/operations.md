@@ -58,6 +58,7 @@ The installer and apply path are designed for reruns:
 - Database migrations run once through `schema_migrations`.
 - Seeding converges memberships and identity metadata to `ecosystem/atlas.yaml`.
 - Profile generation merges Atlas-managed Hermes settings while preserving Hermes-owned credentials, sessions, `SOUL.md`, and other profile state.
+- Runtime generation writes `data/hermes/compose.runtime.yaml`; `atlas runtime` uses it to start the configured Hermes runtime groups.
 
 ## Tailscale And Webhook Edge
 

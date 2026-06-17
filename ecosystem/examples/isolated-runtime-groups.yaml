@@ -1,0 +1,112 @@
+version: 1
+
+project:
+  id: household
+  name: Household Atlas
+
+runtimeGroups:
+  - id: member-one-private
+    displayName: Member One Private Runtime
+    isolation: container
+    ports:
+      dashboard: 9121
+      gateway: 8651
+      whatsappCloudWebhook: 8091
+
+  - id: member-two-private
+    displayName: Member Two Private Runtime
+    isolation: container
+    ports:
+      dashboard: 9122
+      gateway: 8652
+      whatsappCloudWebhook: 8092
+
+  - id: shared-household
+    displayName: Shared Household Runtime
+    isolation: container
+    ports:
+      dashboard: 9123
+      gateway: 8653
+      whatsappCloudWebhook: 8093
+
+users:
+  - id: member-one
+    displayName: Member One
+    identities:
+      - channel: whatsapp
+        externalId: "+15551234567"
+        defaultAgent: member-one-assistant
+
+  - id: member-two
+    displayName: Member Two
+    identities:
+      - channel: whatsapp
+        externalId: "+15557654321"
+        defaultAgent: member-two-assistant
+
+agents:
+  - id: member-one-assistant
+    displayName: Member One Assistant
+    type: personal
+    runtimeGroup: member-one-private
+    hermesProfile: member-one-assistant
+    honchoWorkspace: member-one-assistant
+    owners:
+      - member-one
+    members:
+      - member-one
+    skills:
+      - planning
+      - calendar
+      - reminders
+      - health
+      - training
+      - nutrition
+      - location
+      - memory
+      - whatsapp
+
+  - id: member-two-assistant
+    displayName: Member Two Assistant
+    type: personal
+    runtimeGroup: member-two-private
+    hermesProfile: member-two-assistant
+    honchoWorkspace: member-two-assistant
+    owners:
+      - member-two
+    members:
+      - member-two
+    skills:
+      - planning
+      - calendar
+      - reminders
+      - health
+      - training
+      - nutrition
+      - location
+      - memory
+      - whatsapp
+
+  - id: household
+    displayName: Household Atlas
+    type: shared
+    runtimeGroup: shared-household
+    hermesProfile: household
+    honchoWorkspace: household
+    owners:
+      - member-one
+      - member-two
+    members:
+      - member-one
+      - member-two
+    skills:
+      - household
+      - planning
+      - calendar
+      - reminders
+      - health
+      - training
+      - nutrition
+      - location
+      - memory
+      - whatsapp

@@ -4,16 +4,21 @@ project:
   id: household
   name: Household Atlas
 
+runtimeGroups:
+  - id: default
+    displayName: Default Hermes Runtime
+    isolation: container
+
 users:
-  - id: user-one
-    displayName: User One
+  - id: member-one
+    displayName: Member One
     identities:
       - channel: whatsapp
         externalId: "+15551234567"
         defaultAgent: household
 
-  - id: user-two
-    displayName: User Two
+  - id: member-two
+    displayName: Member Two
     identities:
       - channel: whatsapp
         externalId: "+15557654321"
@@ -23,13 +28,14 @@ agents:
   - id: household
     displayName: Household Atlas
     type: shared
+    runtimeGroup: default
     hermesProfile: household
     honchoWorkspace: household
     owners:
-      - user-one
+      - member-one
     members:
-      - user-one
-      - user-two
+      - member-one
+      - member-two
     skills:
       - household
       - planning

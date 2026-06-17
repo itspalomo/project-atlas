@@ -12,6 +12,9 @@ Messaging, profiles, gateway auth, native skills, MCP discovery, model/provider 
 **Atlas fills gaps**
 Atlas provides installer workflows, identity metadata, iOS bridge APIs, structured facts, approvals, and generated Hermes profile customizations.
 
+**Configurable isolation**
+Agents can share one Hermes runtime group or run in isolated Hermes containers generated from `runtimeGroups`.
+
 **Private by default**
 Administrative surfaces stay on the VPS or Tailscale. Only Hermes' signed WhatsApp webhook path is published through Tailscale Funnel.
 

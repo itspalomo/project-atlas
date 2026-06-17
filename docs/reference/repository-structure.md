@@ -21,11 +21,12 @@ Atlas keeps implementation notes in the documentation site instead of scattering
 | `scripts/install.sh` | Cross-platform installer. Supports `curl | bash` and local checkout mode. |
 | `scripts/atlasctl` | Installed as the `atlas` CLI. |
 | `scripts/init-ecosystem.sh` | Interactive ecosystem config generator. |
-| `scripts/init-hermes-profiles.sh` | Generates or merges Atlas-managed Hermes profile files. |
+| `scripts/init-hermes-profiles.sh` | Generates or merges Atlas-managed Hermes profile files and the runtime Compose override. |
 | `apps/atlas-api/src/bridge/routes.ts` | iOS bridge API routes. |
 | `apps/atlas-api/src/mcp/routes.ts` | Atlas MCP endpoint for Hermes custom context. |
 | `apps/atlas-api/src/tools/generateHermesProfiles.ts` | Hermes profile customization generator. |
 | `infrastructure/postgres/migrations/` | Structured fact schema. |
+| `ecosystem/examples/isolated-runtime-groups.yaml` | Neutral example for separate private/shared Hermes containers. |
 
 ## Removed README Sprawl
 
