@@ -24,7 +24,7 @@ flowchart TB
 
   subgraph Devices["User devices"]
     IOS["iOS bridge app\nHealthKit, calendar, reminders, semantic location"]
-    User["Approved WhatsApp users"]
+    User["Hermes-authorized WhatsApp users"]
   end
 
   WA --> Funnel --> Hermes
@@ -60,7 +60,7 @@ flowchart TB
 
 | Component | Owns | Does Not Own |
 | --- | --- | --- |
-| Hermes | Messaging, profiles, gateway allowlists, native skills, MCP discovery, model/provider auth, memory-provider execution | Atlas bridge storage, approval records, deterministic fact schema |
+| Hermes | Messaging, profiles, gateway authorization, native skills, MCP discovery, model/provider auth, memory-provider execution | Atlas bridge storage, approval records, deterministic fact schema |
 | Atlas | Installer, identity metadata, generated profile config, bridge API, MCP context endpoint, approvals, audit logs | Chat proxying, LLM calls, persona management, raw HealthKit/calendar/location data |
 | Honcho | Long-term conversational memory inside configured workspaces | Structured facts, access policy, bridge device pairing |
 | iOS bridge | Local Apple data access and local Apple writes | Agent runtime behavior |
@@ -77,8 +77,8 @@ Use separate runtime groups when you need hard isolation for resources, network 
 ```mermaid
 flowchart LR
   subgraph Config["ecosystem/atlas.yaml"]
-    U1["user: member-one\nwhatsapp: +1..."]
-    U2["user: member-two\nwhatsapp: +1..."]
+    U1["user: member-one"]
+    U2["user: member-two"]
     G1["runtimeGroup: member-one-private"]
     G2["runtimeGroup: member-two-private"]
     G3["runtimeGroup: shared-household"]
@@ -137,7 +137,7 @@ sequenceDiagram
 
   User->>WA: Send message
   WA->>H: Signed webhook delivery
-  H->>H: Verify sender allowlist
+  H->>H: Apply Hermes channel policy
   H->>HC: Read/write native memory
   H->>MCP: Request Atlas deterministic context when needed
   MCP->>DB: Read scoped facts and approvals
@@ -147,7 +147,7 @@ sequenceDiagram
   WA-->>User: Delivered reply
 ```
 
-Hermes rejects unknown WhatsApp senders before the agent loop. Atlas still stores identity records because the bridge, approvals, audit logs, and scoped context need deterministic user/profile relationships.
+Hermes applies WhatsApp sender authorization before the agent loop. Atlas stores local user and membership records because the bridge, approvals, audit logs, and scoped context need deterministic user/profile relationships.
 
 ## iOS Bridge Flow
 

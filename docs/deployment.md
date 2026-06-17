@@ -23,7 +23,6 @@ curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/script
   | sudo env \
       TAILSCALE_AUTH_KEY=tskey-auth-... \
       TAILSCALE_HOSTNAME=project-atlas \
-      WHATSAPP_CLOUD_VERIFY_TOKEN=replace-me \
       bash
 ```
 
@@ -36,7 +35,7 @@ curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/script
 
 The install script works in two modes. When run outside a checkout, including through `curl | bash`, it installs base package dependencies where supported, clones or updates Atlas, creates `.env` from `.env.example` when missing, copies supported environment overrides into `.env`, installs the `atlas` CLI, and runs the local installer. When run inside a checkout, it installs that checkout directly.
 
-After editing `.env` or `ecosystem/atlas.yaml`, run `atlas apply` to rerun migrations, converge seeded identity metadata and agents, regenerate Hermes profile assets, native skill files, MCP config, Honcho config, and gateway allowlists, and restart Atlas API.
+After editing `.env` or `ecosystem/atlas.yaml`, run `atlas apply` to rerun migrations, converge seeded Atlas users, agents, memberships, and optional bridge identity metadata, regenerate Hermes profile support files, native skill files, MCP config, and Honcho config, and restart Atlas API.
 
 Use the CLI after install:
 
@@ -62,7 +61,7 @@ The installer:
 6. Starts Atlas PostgreSQL and self-hosted Honcho.
 7. Runs migrations.
 8. Seeds users, agents, channel identity metadata, and membership from `ecosystem/atlas.yaml`.
-9. Generates Hermes profile assets, native Atlas capability skills, MCP config, gateway allowlists, and native Honcho memory-provider configs.
+9. Generates Hermes profile assets, native Atlas capability skills, MCP config, and native Honcho memory-provider configs.
 10. Starts Atlas API.
 
 Installer environment knobs:
@@ -84,23 +83,20 @@ The installer is safe to rerun:
 - Tailscale setup is skipped when the node is already connected.
 - Honcho source is cloned only when missing. Existing source is reused unless `HONCHO_AUTO_UPDATE=true`.
 - Database migrations run once through `schema_migrations`.
-- Seeding converges access control to `ecosystem/atlas.yaml`: stale memberships are removed, stale configured-user WhatsApp identities are disabled, and removed users lose enabled channel access.
-- Hermes profile generation converges Atlas-managed files while preserving Hermes-owned credentials, sessions, and profile state.
+- Seeding converges Atlas users, agent membership, optional identity metadata, and approval scope relationships to `ecosystem/atlas.yaml`.
+- Hermes profile generation converges Atlas-managed support files while preserving Hermes-owned credentials, channel policy, sessions, and profile state.
 
 ## Ecosystem Config
 
-The local ecosystem file controls identity metadata, agents, bridge scopes, and generated runtime config. Atlas writes Hermes WhatsApp gateway allowlists, native skill files, MCP config, and Honcho memory-provider config from this file. Hermes remains the runtime and handles model/provider auth, WhatsApp sender allowlists, native skills, MCP discovery, and native memory-provider integration.
+The local ecosystem file controls local users, agents, bridge scopes, Honcho workspaces, and generated runtime config. Atlas writes native skill files, MCP config, and Honcho memory-provider config from this file. Hermes remains the runtime and handles model/provider auth, WhatsApp credentials, channel authorization, native skills, MCP discovery, and native memory-provider integration.
 
-If `ecosystem/atlas.yaml` does not exist, the installer opens an onboarding questionnaire. It asks for an optional install label, allowed users, WhatsApp numbers, shared or personal agents, Hermes profile names, Honcho memory workspaces, and enabled Atlas bridge capabilities. It does not ask for OpenAI or LLM provider keys; those stay with the Hermes/runtime auth provider.
+If `ecosystem/atlas.yaml` does not exist, the installer opens an onboarding questionnaire. It asks for an optional install label, local users, shared or personal agents, Hermes profile names, Honcho memory workspaces, runtime grouping, and enabled Atlas bridge capabilities. It does not ask for WhatsApp numbers, OpenAI keys, or LLM provider keys; those stay with Hermes/runtime setup.
 
 ```yaml
 users:
   - id: member-one
     displayName: Member One
-    identities:
-      - channel: whatsapp
-        externalId: "+15551234567"
-        defaultAgent: household
+    identities: []
 
 agents:
   - id: household
@@ -121,7 +117,6 @@ agents:
       - nutrition
       - location
       - memory
-      - whatsapp
 ```
 
 ## Runtime
@@ -136,7 +131,6 @@ docker compose --profile runtime up -d --build hermes
 `scripts/init-hermes-profiles.sh` writes profile directories under `data/hermes/`. Each configured agent becomes a Hermes profile. By default, agents run in the `default` runtime group. For hard isolation, configure multiple `runtimeGroups`; Atlas will generate one Hermes service per runtime group. Each generated profile includes:
 
 - `config.yaml` with `memory.provider: honcho` and `mcp_servers.atlas`.
-- `.env` with that profile's Atlas-managed Hermes WhatsApp allowlist block, preserving other Hermes-owned credentials.
 - `skills/atlas-context/SKILL.md` for Atlas custom bridge/data capabilities.
 - `atlas-capabilities.json` for deterministic Atlas metadata.
 - A profile-local `honcho.json` pointing at the self-hosted Honcho API.

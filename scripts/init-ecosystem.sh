@@ -141,20 +141,6 @@ prompt_slug() {
   done
 }
 
-prompt_optional_phone() {
-  local label="$1"
-  local default_value="$2"
-  local help_text="$3"
-
-  while true; do
-    prompt_text "$label" "$default_value" "$help_text"
-    if [[ -z "$PROMPT_RESULT" || "$PROMPT_RESULT" =~ ^\+[0-9]{7,15}$ ]]; then
-      return 0
-    fi
-    fail "Use E.164 format, for example +15551234567, or leave it blank."
-  done
-}
-
 prompt_count() {
   local label="$1"
   local default_value="$2"
@@ -297,14 +283,14 @@ write_list_from_csv() {
   done
 }
 
-default_skills=(household planning calendar reminders health training nutrition location memory whatsapp)
-minimal_skills=(household planning reminders memory whatsapp)
-available_skills=(household planning calendar reminders health training nutrition location memory whatsapp)
+default_skills=(household planning calendar reminders health training nutrition location memory)
+minimal_skills=(household planning reminders memory)
+available_skills=(household planning calendar reminders health training nutrition location memory)
 
 section "Welcome"
 printf '%sThis creates your local Atlas ecosystem file:%s %s\n' "$DIM" "$RESET" "$CONFIG_PATH"
-printf '%sAtlas records your people, agents, bridge scopes, and approvals. It also generates Hermes WhatsApp allowlists from this file.%s\n' "$DIM" "$RESET"
-printf '%sHermes is still the agent runtime. Hermes/provider auth, native skills, MCP, gateway, and memory-provider behavior stay with Hermes; Atlas generates profile customizations.%s\n' "$DIM" "$RESET"
+printf '%sAtlas records your people, agents, bridge scopes, approvals, and runtime groups.%s\n' "$DIM" "$RESET"
+printf '%sHermes is still the agent runtime. Hermes/provider auth, messaging, channels, native skills, MCP, gateway, and memory-provider behavior stay with Hermes; Atlas generates profile support files.%s\n' "$DIM" "$RESET"
 printf '%sPress Enter to accept a default. You can edit this file later with:%s atlas configure\n' "$DIM" "$RESET"
 
 section "1. Install label"
@@ -316,13 +302,12 @@ if ! is_slug "$project_id"; then
 fi
 info "Internal id for config files: $project_id"
 
-section "2. Allowed people"
-prompt_count "How many people should be allowed to use this Atlas?" "2" "These WhatsApp numbers become Hermes gateway allowlists. Senders not on the list are rejected by Hermes before the agent loop."
+section "2. People"
+prompt_count "How many people should Atlas model?" "2" "These are local identity records for bridge scoping, approvals, and agent membership. Messaging users and channel credentials are configured in Hermes."
 user_count="$PROMPT_RESULT"
 
 user_ids=()
 user_names=()
-user_whatsapp_numbers=()
 
 for index in $(seq 1 "$user_count"); do
   section "User $index of $user_count"
@@ -345,12 +330,8 @@ for index in $(seq 1 "$user_count"); do
   prompt_text "Display name" "User $index" "Name shown in admin output and agent context."
   display_name="$PROMPT_RESULT"
 
-  prompt_optional_phone "WhatsApp number" "" "The person's WhatsApp number in E.164 format, for example +15551234567. Leave blank to add it later."
-  whatsapp_number="$PROMPT_RESULT"
-
   user_ids+=("$user_id")
   user_names+=("$display_name")
-  user_whatsapp_numbers+=("$whatsapp_number")
 done
 
 section "3. Agents"
@@ -448,40 +429,6 @@ for index in $(seq 1 "$agent_count"); do
   agent_skills_csv+=("$skills_csv")
 done
 
-section "4. WhatsApp identity metadata"
-info "Atlas writes per-profile Hermes allowlists from agent membership. Hermes owns actual WhatsApp gateway behavior."
-info "The default agent below is identity metadata for profile generation and future bridge context."
-
-user_default_agents=()
-for index in "${!user_ids[@]}"; do
-  user_id="${user_ids[$index]}"
-  whatsapp_number="${user_whatsapp_numbers[$index]}"
-  default_agent="${agent_ids[0]}"
-
-  if [[ -z "$whatsapp_number" ]]; then
-    user_default_agents+=("")
-    warn "${user_names[$index]} has no WhatsApp number yet; no channel allowlist will be written for this user."
-    continue
-  fi
-
-  for agent_index in "${!agent_ids[@]}"; do
-    split_csv "${agent_members_csv[$agent_index]}"
-    if array_contains "$user_id" "${PARSED_LIST[@]}"; then
-      default_agent="${agent_ids[$agent_index]}"
-      break
-    fi
-  done
-
-  while true; do
-    prompt_text "Default WhatsApp agent for ${user_names[$index]}" "$default_agent" "Available agents: $(join_csv "${agent_ids[@]}")"
-    if array_contains "$PROMPT_RESULT" "${agent_ids[@]}"; then
-      user_default_agents+=("$PROMPT_RESULT")
-      break
-    fi
-    fail "Choose one of: $(join_csv "${agent_ids[@]}")"
-  done
-done
-
 mkdir -p "$(dirname "$CONFIG_ABS")"
 
 {
@@ -503,28 +450,13 @@ YAML
   for index in "${!user_ids[@]}"; do
     user_id="${user_ids[$index]}"
     display_name="${user_names[$index]}"
-    whatsapp_number="${user_whatsapp_numbers[$index]}"
-    default_agent="${user_default_agents[$index]}"
 
     cat <<YAML
   - id: $(yaml_quote "$user_id")
     displayName: $(yaml_quote "$display_name")
-YAML
-
-    if [[ -n "$whatsapp_number" ]]; then
-      cat <<YAML
-    identities:
-      - channel: whatsapp
-        externalId: $(yaml_quote "$whatsapp_number")
-        defaultAgent: $(yaml_quote "$default_agent")
-
-YAML
-    else
-      cat <<'YAML'
     identities: []
 
 YAML
-    fi
   done
 
   cat <<'YAML'

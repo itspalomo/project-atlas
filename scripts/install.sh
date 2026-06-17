@@ -34,7 +34,7 @@ print_banner() {
 
   export ATLAS_INSTALL_BANNER_PRINTED=true
   printf '\n%sProject Atlas Installer%s\n' "${BOLD}${BLUE}" "$RESET"
-  printf '%sPrivate Hermes + Honcho + WhatsApp runtime setup%s\n\n' "$DIM" "$RESET"
+  printf '%sPrivate Hermes + Honcho + Atlas bridge setup%s\n\n' "$DIM" "$RESET"
 }
 
 section() {
@@ -370,7 +370,7 @@ install_from_checkout() {
 
   printf '\n%sNext steps:%s\n' "${BOLD}${CYAN}" "$RESET"
   cat <<'MSG'
-  1. Configure Hermes WhatsApp Cloud values in .env or by running Hermes' whatsapp-cloud setup.
+  1. Configure messaging, providers, and channel authorization in Hermes.
   2. Start Hermes:
      atlas runtime
      If the global CLI is not installed yet:

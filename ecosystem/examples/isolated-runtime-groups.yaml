@@ -32,17 +32,11 @@ runtimeGroups:
 users:
   - id: member-one
     displayName: Member One
-    identities:
-      - channel: whatsapp
-        externalId: "+15551234567"
-        defaultAgent: member-one-assistant
+    identities: []
 
   - id: member-two
     displayName: Member Two
-    identities:
-      - channel: whatsapp
-        externalId: "+15557654321"
-        defaultAgent: member-two-assistant
+    identities: []
 
 agents:
   - id: member-one-assistant
@@ -64,7 +58,6 @@ agents:
       - nutrition
       - location
       - memory
-      - whatsapp
 
   - id: member-two-assistant
     displayName: Member Two Assistant
@@ -85,7 +78,6 @@ agents:
       - nutrition
       - location
       - memory
-      - whatsapp
 
   - id: household
     displayName: Household Atlas
@@ -109,4 +101,3 @@ agents:
       - nutrition
       - location
       - memory
-      - whatsapp

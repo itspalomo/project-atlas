@@ -46,8 +46,7 @@ async function main(): Promise<void> {
       runtimeGroup: agentRuntimeGroup(agent),
       hermesProfile: agentHermesProfile(agent),
       honchoWorkspace: agentHonchoWorkspace(agent),
-      capabilities: agent.skills,
-      whatsappAllowedUsers: agentWhatsAppAllowedUsers(ecosystem, agent)
+      capabilities: agent.skills
     }))
   };
 
@@ -58,7 +57,6 @@ async function main(): Promise<void> {
     const profileDir = path.join(groupHomeDir, "profiles", profile);
     const honchoWorkspace = agentHonchoWorkspace(agent);
     const skillManifest = skillManifestForIds(agent.skills);
-    const allowedWhatsAppUsers = agentWhatsAppAllowedUsers(ecosystem, agent);
     const honchoHosts = hermesHonchoHosts(profile, {
       aiPeer: agent.id,
       peerName: ecosystem.project.id,
@@ -67,7 +65,7 @@ async function main(): Promise<void> {
 
     await mkdir(profileDir, { recursive: true });
     await mergeProfileConfig(path.join(profileDir, "config.yaml"));
-    await upsertProfileEnv(path.join(profileDir, ".env"), allowedWhatsAppUsers);
+    await removeLegacyAtlasEnvBlock(path.join(profileDir, ".env"));
     const skillDir = path.join(profileDir, "skills", "atlas-context");
     await mkdir(skillDir, { recursive: true });
     await writeFile(path.join(skillDir, "SKILL.md"), `${renderAtlasCapabilitySkill(agent.skills)}\n`, "utf8");
@@ -78,7 +76,7 @@ async function main(): Promise<void> {
           agentId: agent.id,
           capabilities: skillManifest,
           enforcement: {
-            identity: "Hermes gateway allowlists generated from Atlas ecosystem config",
+            identity: "Atlas agent membership and bridge scopes; Hermes owns messaging identities and channel authorization",
             approvals: "Atlas API",
             memory: "Hermes Honcho memory provider with Atlas-generated profile-local honcho.json",
             customData: "Hermes MCP server mcp_atlas_atlas_get_context backed by Atlas API",
@@ -228,49 +226,9 @@ function runtimeGroupPorts(group: EcosystemRuntimeGroup): string[] {
   return ports;
 }
 
-function agentWhatsAppAllowedUsers(
-  ecosystem: Awaited<ReturnType<typeof loadEcosystemConfig>>,
-  agent: Awaited<ReturnType<typeof loadEcosystemConfig>>["agents"][number]
-): string[] {
-  const allowedUserIds = new Set([
-    ...agent.owners,
-    ...agent.members,
-    ...ecosystem.users
-      .filter((user) => user.identities.some((identity) => identity.enabled && identity.defaultAgent === agent.id))
-      .map((user) => user.id)
-  ]);
-  const allowedUsers = new Set<string>();
-
-  for (const user of ecosystem.users) {
-    if (!allowedUserIds.has(user.id)) {
-      continue;
-    }
-
-    for (const identity of user.identities) {
-      if (identity.channel !== "whatsapp" || !identity.enabled) {
-        continue;
-      }
-
-      const normalized = normalizeWhatsAppUser(identity.externalId);
-      if (normalized) {
-        allowedUsers.add(normalized);
-      }
-    }
-  }
-
-  return [...allowedUsers].sort();
-}
-
-function normalizeWhatsAppUser(externalId: string): string {
-  return externalId.replace(/\D/g, "");
-}
-
 async function mergeProfileConfig(configPath: string): Promise<void> {
   const existing = await readYamlObject(configPath);
   const atlasManagedConfig = {
-    whatsapp: {
-      unauthorized_dm_behavior: "ignore"
-    },
     memory: {
       provider: "honcho",
       memory_enabled: true,
@@ -336,20 +294,20 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-async function upsertProfileEnv(envPath: string, allowedWhatsAppUsers: string[]): Promise<void> {
+async function removeLegacyAtlasEnvBlock(envPath: string): Promise<void> {
   const existing = await readTextFile(envPath);
-  const withoutExistingManagedBlock = existing.replace(
+  if (!existing) {
+    return;
+  }
+
+  const nextContent = existing.replace(
     /\n?# BEGIN ATLAS MANAGED WHATSAPP ALLOWLIST[\s\S]*?# END ATLAS MANAGED WHATSAPP ALLOWLIST\n?/g,
     "\n"
-  );
-  const unmanagedLines = withoutExistingManagedBlock
-    .split(/\r?\n/)
-    .filter((line) => !/^\s*(?:export\s+)?(?:WHATSAPP_ALLOWED_USERS|WHATSAPP_CLOUD_ALLOWED_USERS)\s*=/.test(line));
-  const unmanagedContent = unmanagedLines.join("\n").trimEnd();
-  const managedBlock = renderProfileEnvBlock(allowedWhatsAppUsers);
-  const nextContent = unmanagedContent.length > 0 ? `${unmanagedContent}\n\n${managedBlock}\n` : `${managedBlock}\n`;
+  ).trimEnd();
 
-  await writeFile(envPath, nextContent, "utf8");
+  if (nextContent !== existing.trimEnd()) {
+    await writeFile(envPath, nextContent.length > 0 ? `${nextContent}\n` : "", "utf8");
+  }
 }
 
 async function readTextFile(filePath: string): Promise<string> {
@@ -365,28 +323,6 @@ async function readTextFile(filePath: string): Promise<string> {
 
 function isNotFound(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
-}
-
-function renderProfileEnvBlock(allowedWhatsAppUsers: string[]): string {
-  const lines = [
-    "# BEGIN ATLAS MANAGED WHATSAPP ALLOWLIST",
-    "# Generated by Atlas from ecosystem/atlas.yaml. Other Hermes credentials in this file are preserved."
-  ];
-
-  if (allowedWhatsAppUsers.length > 0) {
-    const allowlist = allowedWhatsAppUsers.join(",");
-    lines.push("# Hermes WhatsApp gateway allowlists. Phone numbers use country code digits without '+'.");
-    lines.push(`WHATSAPP_ALLOWED_USERS=${allowlist}`);
-    lines.push(`WHATSAPP_CLOUD_ALLOWED_USERS=${allowlist}`);
-  } else {
-    lines.push("# No WhatsApp identities are configured for this profile; Hermes should deny inbound WhatsApp by default.");
-    lines.push("WHATSAPP_ALLOWED_USERS=");
-    lines.push("WHATSAPP_CLOUD_ALLOWED_USERS=");
-  }
-
-  lines.push("# END ATLAS MANAGED WHATSAPP ALLOWLIST");
-
-  return lines.join("\n");
 }
 
 type HonchoHostConfig = {

@@ -9,13 +9,12 @@
 - Admin access uses Tailscale SSH.
 - WhatsApp Cloud API requires a public HTTPS webhook, but only Hermes' `/whatsapp/webhook` path should be exposed through Tailscale Funnel.
 
-## WhatsApp Identity
+## WhatsApp Messaging
 
-- Phone numbers are normalized to digits from `ecosystem/atlas.yaml`.
-- `atlas apply` merges those numbers into each generated Hermes profile's Atlas-managed `.env` allowlist block.
-- Hermes rejects unknown WhatsApp Cloud senders through `WHATSAPP_CLOUD_ALLOWED_USERS`.
-- Meta webhook signatures are verified by Hermes with `WHATSAPP_CLOUD_APP_SECRET`.
-- The Hermes verification token is random and stored in `.env` as `WHATSAPP_CLOUD_VERIFY_TOKEN`.
+- Hermes owns WhatsApp credentials, sender authorization, webhook verification, signature checks, and channel behavior.
+- Atlas does not collect WhatsApp numbers during onboarding and does not write channel authorization environment variables.
+- `atlas webhook` only publishes Hermes' configured `/whatsapp/webhook` listener through Tailscale Funnel.
+- The Hermes verification token and Meta app secret stay in Hermes-owned environment or profile configuration.
 
 ## iOS Bridge
 
@@ -34,7 +33,7 @@
 - Atlas API runs with a read-only root filesystem and `no-new-privileges`.
 - Atlas MCP requires `ATLAS_MCP_KEY` in production and only exposes explicit custom tools.
 - Hermes should not receive unrestricted host filesystem access.
-- Hermes owns native skills, MCP discovery, gateway allowlists, and memory-provider access. Atlas capability metadata only describes custom structured-data and bridge surfaces.
+- Hermes owns native skills, MCP discovery, messaging gateways, channel authorization, and memory-provider access. Atlas capability metadata only describes custom structured-data and bridge surfaces.
 
 ## Approvals
 

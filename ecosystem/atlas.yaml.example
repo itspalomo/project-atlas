@@ -12,17 +12,11 @@ runtimeGroups:
 users:
   - id: member-one
     displayName: Member One
-    identities:
-      - channel: whatsapp
-        externalId: "+15551234567"
-        defaultAgent: household
+    identities: []
 
   - id: member-two
     displayName: Member Two
-    identities:
-      - channel: whatsapp
-        externalId: "+15557654321"
-        defaultAgent: household
+    identities: []
 
 agents:
   - id: household
@@ -46,4 +40,3 @@ agents:
       - nutrition
       - location
       - memory
-      - whatsapp

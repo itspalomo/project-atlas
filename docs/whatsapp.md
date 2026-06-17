@@ -1,10 +1,23 @@
 # WhatsApp
 
-Atlas uses Hermes' native WhatsApp gateway for messaging. Atlas does not need to reimplement the WhatsApp webhook path to control who can talk to the agent.
+Atlas uses Hermes' native WhatsApp support. Atlas does not collect phone numbers during onboarding, does not decide who may message an agent, and does not write Hermes WhatsApp allowlist environment variables.
 
-## Recommended Path
+## Ownership
 
-For production, use Hermes WhatsApp Business Cloud API:
+| Concern | Owner |
+| --- | --- |
+| WhatsApp Cloud credentials | Hermes |
+| WhatsApp sender authorization | Hermes |
+| Webhook verification and signatures | Hermes |
+| Agent/profile channel behavior | Hermes |
+| Tailscale Funnel publication of the Hermes webhook path | Atlas script |
+| Bridge devices, local users, approvals, and deterministic context | Atlas |
+
+`ecosystem/atlas.yaml` models people, agents, runtime groups, Honcho workspaces, and Atlas bridge capabilities. Configure sender identities, Meta credentials, sender policy, and client behavior with Hermes.
+
+## Production Path
+
+For WhatsApp Business Cloud API, configure Hermes first for the profile or runtime group you want online. Then start the runtime and publish only the Hermes webhook path:
 
 ```bash
 atlas apply
@@ -12,20 +25,17 @@ atlas runtime
 atlas webhook
 ```
 
-`atlas apply` merges an Atlas-managed allowlist block into `data/hermes/profiles/<profile>/.env` without deleting Hermes-owned credentials. Each profile gets both Hermes allowlists based on that agent's owners, members, and users whose WhatsApp identity defaults to that agent:
+`atlas webhook` uses Tailscale Funnel to proxy:
 
-```bash
-# BEGIN ATLAS MANAGED WHATSAPP ALLOWLIST
-WHATSAPP_ALLOWED_USERS=15551234567,15557654321
-WHATSAPP_CLOUD_ALLOWED_USERS=15551234567,15557654321
-# END ATLAS MANAGED WHATSAPP ALLOWLIST
+```text
+https://<your-node>.<tailnet>.ts.net/whatsapp/webhook
 ```
 
-Phone numbers are normalized to country-code digits without `+`, spaces, or dashes. Hermes denies inbound WhatsApp Cloud messages not on the profile's `WHATSAPP_CLOUD_ALLOWED_USERS`.
+to the local Hermes webhook listener. Use that URL as the Meta callback URL. Use the verification token configured in Hermes as the Meta webhook verification token.
 
-## Hermes Cloud Credentials
+## Credentials
 
-Configure Cloud API credentials with Hermes' own setup wizard for each profile. For a single shared profile, these can also live in the environment passed to the Hermes container:
+For simple single-runtime installs, `.env` includes optional passthrough variables that Docker Compose can provide to Hermes:
 
 ```bash
 WHATSAPP_CLOUD_PHONE_NUMBER_ID=<phone-number-id>
@@ -37,38 +47,26 @@ WHATSAPP_CLOUD_WEBHOOK_PORT=8090
 WHATSAPP_CLOUD_WEBHOOK_PATH=/whatsapp/webhook
 ```
 
-For multiple online profiles, keep each profile's WhatsApp credentials in that profile's Hermes `.env`; each Hermes profile/gateway should have its own bot phone number/session or Cloud API credentials. Atlas preserves those credentials and only updates its managed allowlist block.
+For multiple isolated runtime groups, prefer profile-local or runtime-local Hermes credentials. Each Hermes gateway should use its own intended channel credentials and authorization policy.
 
-`atlas webhook` publishes the Hermes webhook through Tailscale Funnel. Use the printed URL as the Meta callback URL:
+## What Atlas Generates
 
-```text
-https://<your-node>.<tailnet>.ts.net/whatsapp/webhook
-```
+`atlas apply` generates Hermes profile support files:
 
-Use `WHATSAPP_CLOUD_VERIFY_TOKEN` as the Meta webhook verification token.
+- `config.yaml` entries for Honcho memory and the Atlas MCP endpoint.
+- `skills/atlas-context/SKILL.md` for Atlas bridge and deterministic context behavior.
+- `atlas-capabilities.json` for local debugging.
+- `honcho.json` for self-hosted Honcho memory provider wiring.
+- `data/hermes/compose.runtime.yaml` for the configured runtime groups.
 
-## Allowed Users
+If an older install has an Atlas-managed WhatsApp allowlist block in a generated profile `.env`, `atlas apply` removes that legacy block and leaves other Hermes-owned credentials intact.
 
-Allowed senders are defined once in `ecosystem/atlas.yaml`:
+## Personal Bridge
 
-```yaml
-users:
-  - id: member-one
-    displayName: Member One
-    identities:
-      - channel: whatsapp
-        externalId: "+15551234567"
-        defaultAgent: household
-```
-
-Run `atlas apply` after editing identities. Atlas regenerates each Hermes profile's managed allowlist and reseeds Atlas' structured identity metadata.
-
-## Personal WhatsApp Bridge
-
-For a personal number or quick testing, use Hermes' Baileys bridge instead of Cloud API:
+For a personal WhatsApp session or local testing, use Hermes' own command flow, for example:
 
 ```bash
 hermes whatsapp
 ```
 
-The same generated `WHATSAPP_ALLOWED_USERS` value in the active profile's `.env` applies to Hermes' Baileys bridge. Generated Hermes `config.yaml` sets unauthorized WhatsApp DMs to `ignore` for private installs.
+Atlas still does not manage the sender policy for that bridge.

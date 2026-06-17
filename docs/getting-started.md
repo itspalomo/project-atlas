@@ -43,7 +43,7 @@ It asks for:
 | Prompt | Meaning |
 | --- | --- |
 | Install label | Friendly name for admin output and generated metadata. Not a product name, auth setting, or persona. |
-| People | Users allowed to use the private system. WhatsApp numbers become Hermes allowlists. |
+| People | Local users for bridge scoping, approvals, and agent membership. Messaging users are configured in Hermes. |
 | Agents | Hermes profiles. A profile can be personal or shared. |
 | Runtime group | The Hermes container boundary. Use `default` for one container, or add named runtime groups for isolated containers. |
 | Hermes profile name | The profile directory/name Hermes uses. |

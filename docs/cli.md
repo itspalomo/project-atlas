@@ -5,9 +5,9 @@
 | Command | What it does |
 | --- | --- |
 | `atlas install` | Runs `scripts/install.sh` for the current checkout. It creates `.env` when missing, creates the ecosystem config when missing, installs Linux host dependencies when applicable, prepares Honcho, runs migrations/seeding, generates Hermes profiles, and starts the base Atlas API stack. |
-| `atlas configure` | Opens `.env`, ensures `ecosystem/atlas.yaml` exists, then opens the ecosystem config. Use this to edit users, WhatsApp identities, Hermes profiles, profile membership, and Atlas custom capabilities. |
+| `atlas configure` | Opens `.env`, ensures `ecosystem/atlas.yaml` exists, then opens the ecosystem config. Use this to edit users, Hermes profiles, profile membership, runtime groups, Honcho workspaces, and Atlas custom capabilities. |
 | `atlas init` | Creates `ecosystem/atlas.yaml` if missing. In a terminal it prompts for users and a shared agent; without a terminal it copies `ecosystem/atlas.yaml.example`. |
-| `atlas apply` | Applies the current config without reinstalling host dependencies: runs migrations, seeds identity metadata and agents, regenerates Hermes profile assets/native skill/MCP config/gateway allowlists, and restarts Atlas API. |
+| `atlas apply` | Applies the current config without reinstalling host dependencies: runs migrations, seeds Atlas users/agents/memberships, regenerates Hermes profile support files, and restarts Atlas API. |
 | `atlas install-cli` | Installs or refreshes the `atlas` command symlink. Uses `/usr/local/bin/atlas` when writable/root, otherwise falls back to `$HOME/.local/bin/atlas` unless `ATLAS_CLI_PATH` is set. |
 | `atlas doctor` | Prints repo/config presence, Git/Docker/Tailscale status, Compose service status, and local API health checks. |
 | `atlas up` or `atlas start` | Starts the base Docker Compose services with a rebuild. |
@@ -18,7 +18,7 @@
 | `atlas update` | Pulls the latest Git changes with `git pull --ff-only`, then reruns the installer. |
 | `atlas migrate` | Runs database migrations through the `atlas-api` container. |
 | `atlas seed` | Seeds configured users, agents, memberships, and identity metadata from `ecosystem/atlas.yaml`. |
-| `atlas profiles` | Merges Atlas-managed Hermes `config.yaml` settings, updates the native `skills/atlas-context/SKILL.md`, writes `atlas-capabilities.json`, Honcho config, MCP config, managed gateway allowlists, and the generated runtime Compose override from the ecosystem config. |
+| `atlas profiles` | Merges Atlas-managed Hermes `config.yaml` settings, updates the native `skills/atlas-context/SKILL.md`, writes `atlas-capabilities.json`, Honcho config, MCP config, and the generated runtime Compose override from the ecosystem config. |
 | `atlas runtime` | Regenerates Hermes profiles and starts all configured Hermes runtime groups. |
 | `atlas runtime-off` | Stops the Hermes runtime service. |
 | `atlas honcho` | Clones/prepares self-hosted Honcho and starts its Compose services. |

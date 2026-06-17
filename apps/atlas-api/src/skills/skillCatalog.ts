@@ -1,7 +1,7 @@
 export type AtlasSkill = {
   id: string;
   title: string;
-  category: "coordination" | "channel" | "memory" | "wellness" | "productivity" | "context";
+  category: "coordination" | "memory" | "wellness" | "productivity" | "context";
   summary: string;
   structuredFacts: string[];
   allowedActions: string[];
@@ -105,15 +105,6 @@ export const builtInSkills: AtlasSkill[] = [
     structuredFacts: ["honcho workspace id", "shared memory grants"],
     allowedActions: ["Use workspace memory for preferences", "Summarize remembered preferences"],
     approvalRequired: ["Copying personal memory into a shared workspace", "Using revoked shared memory"]
-  },
-  {
-    id: "whatsapp",
-    title: "WhatsApp Messaging",
-    category: "channel",
-    summary: "Adapt responses for Hermes' WhatsApp gateway and generated allowlist model.",
-    structuredFacts: ["Hermes gateway allowlists", "Atlas identity metadata", "audit logs"],
-    allowedActions: ["Reply to authorized senders through Hermes", "Follow Hermes profile and channel conventions"],
-    approvalRequired: ["Messaging another user proactively", "Sharing private facts in a group or shared context"]
   }
 ];
 
