@@ -2,6 +2,8 @@
 
 The bridge API is served by `atlas-api` under `/bridge/v1`.
 
+Hermes does not call these write endpoints directly. Hermes reads scoped custom context through the Atlas MCP endpoint at `/mcp`; bridge writes still require device tokens or approval flows.
+
 Implemented endpoints:
 
 - `POST /bridge/v1/devices/register`

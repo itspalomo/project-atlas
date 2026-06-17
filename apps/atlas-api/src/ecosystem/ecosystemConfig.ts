@@ -2,7 +2,7 @@ import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import yaml from "js-yaml";
 import { z } from "zod";
-import { renderSkillPrompt, validateSkillIds } from "../skills/skillCatalog.js";
+import { validateSkillIds } from "../skills/skillCatalog.js";
 
 const identitySchema = z.object({
   channel: z.enum(["whatsapp"]),
@@ -139,14 +139,13 @@ export function agentPrompt(agent: EcosystemAgent): string {
     `Display name: ${agent.displayName}`,
     `Agent type: ${agent.type}`,
     "",
-    "Hermes is the reasoning runtime. Atlas supplies identity, scoped deterministic facts, bridge connection state, approval state, and memory workspace boundaries.",
-    "Use Atlas-provided structured facts when they are present. Otherwise rely on the conversation and Hermes memory.",
-    "If a user asks about data that is missing, stale, or not shared through the iOS bridge, ask the user to connect or authorize the bridge data, or to provide the information in chat.",
-    "Writes to calendars, reminders, goals, training plans, and cross-user sharing are handled through Atlas approvals and bridge execution."
+    "Hermes is the reasoning runtime. Use Hermes-native messaging, memory providers, skills, MCP tools, model/provider auth, and profile behavior first.",
+    "Atlas supplies generated runtime config plus custom structured-data and iOS bridge surfaces when they are enabled for this profile.",
+    "If a user asks about Atlas-managed data that is missing, stale, or not shared through the iOS bridge, ask the user to connect or authorize the bridge data, or to provide the information in chat.",
+    "Writes to calendars, reminders, goals, training plans, and cross-user sharing require Atlas approvals and bridge execution."
   ].join("\n");
-  const skillPrompt = renderSkillPrompt(agent.skills);
 
-  return [basePrompt, skillPrompt].filter(Boolean).join("\n\n").trimEnd();
+  return basePrompt.trimEnd();
 }
 
 function validateUnique(values: string[], label: string): void {

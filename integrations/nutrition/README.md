@@ -2,7 +2,7 @@
 
 Nutrition data enters Atlas through the iOS bridge as structured intake facts.
 
-Atlas intentionally does not run a full food database, recipe planner, or local MCP server. The iOS bridge or another local tool can estimate intake from:
+Atlas intentionally does not run a full food database or recipe planner. The iOS bridge or another local tool can estimate intake from:
 
 - Manual meal logging.
 - A nutrition label scan.
@@ -18,3 +18,5 @@ Atlas stores the result as summaries and optional meal entries:
 - Source and confidence.
 
 Agents should treat low-confidence or photo-estimated meals as approximate context, not precise measurements.
+
+Hermes reads nutrition summaries through the generated Atlas MCP tool when the `nutrition` Atlas capability is enabled.

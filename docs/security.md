@@ -5,6 +5,7 @@
 - PostgreSQL binds to `127.0.0.1`.
 - Honcho API binds to `127.0.0.1` on the host and stays on the private Compose network internally.
 - Hermes dashboard, gateway API, and WhatsApp Cloud webhook bind to `127.0.0.1` on the host.
+- Atlas MCP and bridge APIs stay on the private Compose/Tailscale network.
 - Admin access uses Tailscale SSH.
 - WhatsApp Cloud API requires a public HTTPS webhook, but only Hermes' `/whatsapp/webhook` path should be exposed through Tailscale Funnel.
 
@@ -31,8 +32,9 @@
 - Atlas API does not mount the Docker socket.
 - Atlas API runs as a non-root user in the container.
 - Atlas API runs with a read-only root filesystem and `no-new-privileges`.
+- Atlas MCP requires `ATLAS_MCP_KEY` in production and only exposes explicit custom tools.
 - Hermes should not receive unrestricted host filesystem access.
-- Agent skills are data capability manifests, not authorization or persona guidance. Atlas still enforces structured-data scope and approvals; Hermes enforces gateway allowlists and memory-provider access.
+- Hermes owns native skills, MCP discovery, gateway allowlists, and memory-provider access. Atlas capability metadata only describes custom structured-data and bridge surfaces.
 
 ## Approvals
 

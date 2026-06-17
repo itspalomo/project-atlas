@@ -1,6 +1,6 @@
 # Project Atlas
 
-Project Atlas is a private personal-agent ecosystem for individuals and families. Atlas owns identity, permissions, structured facts, approvals, integrations, and generated runtime configuration. Hermes is the initial runtime and owns the agent loop, including its native memory-provider integration.
+Project Atlas is a private personal-agent ecosystem installer and customization layer for individuals and families. Hermes owns the agent runtime: messaging, profiles, native skills, MCP tools, model/provider auth, and memory providers. Atlas generates Hermes config and provides custom structured-data, iOS bridge, approval, and deployment surfaces.
 
 Atlas is self-serve. A local `ecosystem/atlas.yaml` file defines the users, their WhatsApp identities, shared or personal agents, routing aliases, Hermes profiles, and Honcho memory workspaces for each installation. The repository does not ship with named built-in people.
 
@@ -8,14 +8,15 @@ Atlas is self-serve. A local `ecosystem/atlas.yaml` file defines the users, thei
 
 - Docker Compose for Atlas API, PostgreSQL, self-hosted Honcho, and Hermes.
 - Tailscale Funnel setup for the public Hermes WhatsApp webhook edge.
-- PostgreSQL schema for identities, agents, allowlisted channels, approvals, audit logs, health summaries, nutrition intake, calendar availability, reminders, and goals.
+- PostgreSQL schema for identity metadata, agents, approvals, audit logs, health summaries, nutrition intake, calendar availability, reminders, and goals.
 - Hermes WhatsApp gateway allowlist generation from the local ecosystem config.
 - iOS bridge API scaffold for privacy-preserving HealthKit, calendar availability, semantic location, reminders, and approvals.
+- Internal Atlas MCP endpoint for Hermes-native access to custom structured context.
 - Lightweight nutrition intake bridge for calories, macros, fiber, hydration, and source confidence.
 - Deterministic training tables for plans, planned workouts, performed workouts, exercises, and sets.
-- Baked-in agent skill catalog for household coordination, planning, calendar, reminders, health, training, nutrition, semantic location, memory, and WhatsApp behavior.
+- Atlas capability catalog that generates a native Hermes `atlas-context` skill for custom bridge/data behavior.
 - Self-serve ecosystem config generator.
-- Hermes profile config generation, including native Honcho memory-provider config, from the local ecosystem config.
+- Hermes profile config generation, including native Honcho memory-provider, MCP, gateway allowlist, and skill files from the local ecosystem config.
 - Honcho self-hosting setup wired into the default installer.
 - `atlas` CLI wrapper for install, configure, apply, status, logs, runtime, webhook, and updates.
 - Cross-platform installer script for macOS and Linux VPS hosts.

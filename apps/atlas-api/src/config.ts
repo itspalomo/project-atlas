@@ -18,6 +18,12 @@ const envSchema = z.object({
     .enum(["true", "false"])
     .default("false")
     .transform((value) => value === "true"),
+  ATLAS_LEGACY_WHATSAPP_WEBHOOK_ENABLED: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+  ATLAS_MCP_URL: z.string().url().default("http://atlas-api:3000/mcp"),
+  ATLAS_MCP_KEY: z.string().optional(),
   ATLAS_RUNTIME_MODE: z.enum(["stub", "hermes"]).default("stub"),
   HERMES_BASE_URL: z.string().url().optional(),
   HERMES_ENDPOINT_TEMPLATE: z.string().url().optional(),
@@ -43,6 +49,11 @@ export type AtlasConfig = {
     verifyToken: string;
     requestTimeoutMs: number;
     sendUnauthorizedReply: boolean;
+  };
+  legacyWhatsappWebhookEnabled: boolean;
+  mcp: {
+    url: string;
+    key?: string;
   };
   runtimeMode: "stub" | "hermes";
   hermesBaseUrl?: string;
@@ -74,6 +85,11 @@ export function loadConfig(env = process.env): AtlasConfig {
       verifyToken: parsed.WHATSAPP_VERIFY_TOKEN,
       requestTimeoutMs: parsed.WHATSAPP_REQUEST_TIMEOUT_MS,
       sendUnauthorizedReply: parsed.WHATSAPP_SEND_UNAUTHORIZED_REPLY
+    },
+    legacyWhatsappWebhookEnabled: parsed.ATLAS_LEGACY_WHATSAPP_WEBHOOK_ENABLED,
+    mcp: {
+      url: parsed.ATLAS_MCP_URL,
+      key: parsed.ATLAS_MCP_KEY
     },
     runtimeMode: parsed.ATLAS_RUNTIME_MODE,
     hermesBaseUrl: parsed.HERMES_BASE_URL,

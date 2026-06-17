@@ -318,7 +318,7 @@ available_skills=(household planning calendar reminders health training nutritio
 section "Welcome"
 printf '%sThis creates your local Atlas ecosystem file:%s %s\n' "$DIM" "$RESET" "$CONFIG_PATH"
 printf '%sAtlas records your people, agents, bridge scopes, and approvals. It also generates Hermes WhatsApp allowlists from this file.%s\n' "$DIM" "$RESET"
-printf '%sHermes is still the agent runtime. Hermes/provider auth and native memory-provider behavior stay with Hermes; Atlas generates the profile and Honcho workspace config.%s\n' "$DIM" "$RESET"
+printf '%sHermes is still the agent runtime. Hermes/provider auth, native skills, MCP, gateway, and memory-provider behavior stay with Hermes; Atlas generates profile customizations.%s\n' "$DIM" "$RESET"
 printf '%sPress Enter to accept a default. You can edit this file later with:%s atlas configure\n' "$DIM" "$RESET"
 
 section "1. Install label"
@@ -372,7 +372,7 @@ info "An agent is the thing a user chats with. It can be shared, like a family a
 info "Each agent gets:"
 info "- a Hermes profile name, so Hermes knows which profile/config to run"
 info "- a Honcho workspace, so memory stays scoped to that agent"
-info "- capability switches, which tell Hermes what structured Atlas/bridge facts may be available"
+info "- Atlas capability switches, which generate a Hermes native skill for custom bridge/data facts"
 prompt_count "How many agents should Atlas create now?" "1" "Start with one shared family agent unless you already know you want multiple."
 agent_count="$PROMPT_RESULT"
 
@@ -459,7 +459,7 @@ for index in $(seq 1 "$agent_count"); do
   fi
 
   while true; do
-    prompt_text "Capabilities" "default" "These are data/capability switches, not persona text. Use default, minimal, all, or comma-separated ids. Default: $(join_csv "${default_skills[@]}")"
+    prompt_text "Atlas capabilities" "default" "These generate a Hermes native skill for Atlas custom data surfaces; they are not persona text. Use default, minimal, all, or comma-separated ids. Default: $(join_csv "${default_skills[@]}")"
     if parse_skills "$PROMPT_RESULT"; then
       skills_csv="$(join_csv "${PARSED_LIST[@]}")"
       break
@@ -627,5 +627,5 @@ chmod 600 "$CONFIG_ABS"
 section "Ecosystem config created"
 ok "Created $CONFIG_PATH."
 info "Review it any time with: atlas configure"
-info "Hermes profile files are generated later by: atlas profiles or atlas apply"
+info "Hermes profile files and native Atlas capability skills are generated later by: atlas profiles or atlas apply"
 info "Start the Hermes runtime when ready with: atlas runtime"

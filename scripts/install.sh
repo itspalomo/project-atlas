@@ -224,7 +224,10 @@ apply_env_overrides() {
     POSTGRES_USER \
     POSTGRES_PASSWORD \
     DATABASE_URL \
+    ATLAS_MCP_URL \
+    ATLAS_MCP_KEY \
     ATLAS_ECOSYSTEM_CONFIG \
+    ATLAS_LEGACY_WHATSAPP_WEBHOOK_ENABLED \
     WHATSAPP_GRAPH_API_VERSION \
     WHATSAPP_PHONE_NUMBER_ID \
     WHATSAPP_ACCESS_TOKEN \
@@ -358,7 +361,7 @@ install_from_checkout() {
     info "Skipping Linux system dependency and Tailscale setup on $(uname -s)."
   fi
 
-  if grep -Eq 'change-me-generate-with-openssl|POSTGRES_PASSWORD=$|ATLAS_BRIDGE_API_KEY=$|WHATSAPP_VERIFY_TOKEN=$|WHATSAPP_CLOUD_VERIFY_TOKEN=$' .env; then
+  if grep -Eq 'change-me-generate-with-openssl|POSTGRES_PASSWORD=$|ATLAS_MCP_KEY=$|ATLAS_BRIDGE_API_KEY=$|WHATSAPP_VERIFY_TOKEN=$|WHATSAPP_CLOUD_VERIFY_TOKEN=$' .env; then
     run_command "Rotating local placeholder secrets" scripts/rotate-local-secrets.sh
   else
     section "Checking local secrets"

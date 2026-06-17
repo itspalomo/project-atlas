@@ -8,7 +8,7 @@ import {
   agentPrompt,
   loadEcosystemConfig
 } from "../ecosystem/ecosystemConfig.js";
-import { skillManifestForIds } from "../skills/skillCatalog.js";
+import { renderAtlasCapabilitySkill, skillManifestForIds } from "../skills/skillCatalog.js";
 
 type Args = {
   outDir: string;
@@ -37,7 +37,7 @@ async function main(): Promise<void> {
       displayName: agent.displayName,
       hermesProfile: agentHermesProfile(agent),
       honchoWorkspace: agentHonchoWorkspace(agent),
-      skills: agent.skills
+      capabilities: agent.skills
     }))
   };
   const desiredProfiles = new Set(manifest.profiles.map((profile) => profile.hermesProfile));
@@ -68,6 +68,19 @@ async function main(): Promise<void> {
             provider: "honcho",
             memory_enabled: true,
             user_profile_enabled: true
+          },
+          mcp_servers: {
+            atlas: {
+              url: "${ATLAS_MCP_URL}",
+              headers: {
+                Authorization: "Bearer ${ATLAS_MCP_KEY}"
+              },
+              tools: {
+                include: ["atlas_get_context"],
+                prompts: false,
+                resources: false
+              }
+            }
           }
         },
         { noRefs: true, lineWidth: 120 }
@@ -75,17 +88,21 @@ async function main(): Promise<void> {
       "utf8"
     );
     await writeFile(path.join(profileDir, "SOUL.md"), `${agentPrompt(agent)}\n`, "utf8");
+    const skillDir = path.join(profileDir, "skills", "atlas-context");
+    await mkdir(skillDir, { recursive: true });
+    await writeFile(path.join(skillDir, "SKILL.md"), `${renderAtlasCapabilitySkill(agent.skills)}\n`, "utf8");
     await writeFile(
-      path.join(profileDir, "skills.json"),
+      path.join(profileDir, "atlas-capabilities.json"),
       `${JSON.stringify(
         {
           agentId: agent.id,
-          skills: skillManifest,
+          capabilities: skillManifest,
           enforcement: {
             identity: "Hermes gateway allowlists generated from Atlas ecosystem config",
             approvals: "Atlas API",
             memory: "Hermes Honcho memory provider with Atlas-generated profile-local honcho.json",
-            bridgeWrites: "iOS bridge scoped device tokens"
+            customData: "Hermes MCP server mcp_atlas_atlas_get_context backed by Atlas API",
+            bridgeWrites: "iOS bridge scoped device tokens and Atlas approvals"
           }
         },
         null,

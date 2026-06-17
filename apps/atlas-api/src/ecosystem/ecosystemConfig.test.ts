@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { agentPrompt, EcosystemAgent } from "./ecosystemConfig.js";
 
 describe("ecosystem config", () => {
-  it("appends enabled data capabilities to custom prompts", () => {
+  it("keeps custom prompts separate from generated Hermes skills", () => {
     const agent: EcosystemAgent = {
       id: "household",
       displayName: "Household Atlas",
@@ -20,9 +20,9 @@ describe("ecosystem config", () => {
 
     const prompt = agentPrompt(agent);
     expect(prompt).toContain("# Custom prompt");
-    expect(prompt).toContain("Atlas Data Capabilities");
-    expect(prompt).toContain("calendar: Use availability windows");
-    expect(prompt).toContain("health: Use summarized HealthKit-derived metrics");
+    expect(prompt).not.toContain("Atlas Data Capabilities");
+    expect(prompt).not.toContain("calendar: Use availability windows");
+    expect(prompt).not.toContain("health: Use summarized HealthKit-derived metrics");
   });
 
   it("uses a minimal non-persona default prompt", () => {
@@ -43,6 +43,7 @@ describe("ecosystem config", () => {
     const prompt = agentPrompt(agent);
     expect(prompt).toContain("Hermes is the reasoning runtime");
     expect(prompt).toContain("ask the user to connect or authorize the bridge data");
+    expect(prompt).toContain("Use Hermes-native messaging, memory providers, skills, MCP tools");
     expect(prompt).not.toContain("You are");
   });
 });

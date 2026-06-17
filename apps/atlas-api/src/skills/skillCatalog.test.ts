@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderSkillPrompt, resolveSkills, skillManifestForIds, validateSkillIds } from "./skillCatalog.js";
+import { renderAtlasCapabilitySkill, resolveSkills, skillManifestForIds, validateSkillIds } from "./skillCatalog.js";
 
 describe("skill catalog", () => {
   it("resolves built-in skills in configured order", () => {
@@ -11,11 +11,11 @@ describe("skill catalog", () => {
     expect(() => validateSkillIds(["unknown"], "Agent household")).toThrow(/unknown skill unknown/);
   });
 
-  it("renders data capability context without leaking prompt-only fields into the manifest", () => {
-    const prompt = renderSkillPrompt(["health"]);
-    expect(prompt).toContain("Atlas Data Capabilities");
+  it("renders data capability context as a Hermes skill without leaking prompt-only fields into the manifest", () => {
+    const prompt = renderAtlasCapabilitySkill(["health"]);
+    expect(prompt).toContain("name: atlas-context");
     expect(prompt).toContain("health: Use summarized HealthKit-derived metrics");
-    expect(prompt).toContain("If needed data is absent, ask the user to connect or authorize the iOS bridge");
+    expect(prompt).toContain("The primary tool is `mcp_atlas_atlas_get_context`");
 
     const manifest = skillManifestForIds(["health"]);
     expect(manifest[0]).toMatchObject({ id: "health", title: "Health Summary" });

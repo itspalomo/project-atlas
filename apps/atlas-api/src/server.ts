@@ -3,6 +3,7 @@ import { Pool } from "pg";
 import { AtlasConfig } from "./config.js";
 import { registerWhatsAppRoutes } from "./whatsapp/routes.js";
 import { registerBridgeRoutes } from "./bridge/routes.js";
+import { registerMcpRoutes } from "./mcp/routes.js";
 import { builtInSkills, skillManifestForIds } from "./skills/skillCatalog.js";
 
 export async function buildServer(config: AtlasConfig, pool: Pool): Promise<FastifyInstance> {
@@ -28,7 +29,8 @@ export async function buildServer(config: AtlasConfig, pool: Pool): Promise<Fast
     ok: true,
     service: "atlas-api",
     runtimeMode: config.runtimeMode,
-    whatsappConfigured: Boolean(config.whatsapp.phoneNumberId && config.whatsapp.accessToken),
+    legacyWhatsappWebhookEnabled: config.legacyWhatsappWebhookEnabled,
+    mcpConfigured: Boolean(config.mcp.key),
     honchoConfigured: Boolean(config.honcho?.baseUrl)
   }));
 
@@ -50,11 +52,19 @@ export async function buildServer(config: AtlasConfig, pool: Pool): Promise<Fast
     }
   });
 
-  app.get("/skills", async () => ({
-    skills: skillManifestForIds(builtInSkills.map((skill) => skill.id))
+  app.get("/capabilities", async () => ({
+    capabilities: skillManifestForIds(builtInSkills.map((skill) => skill.id))
   }));
 
-  await registerWhatsAppRoutes(app, pool, config);
+  app.get("/skills", async () => ({
+    capabilities: skillManifestForIds(builtInSkills.map((skill) => skill.id)),
+    note: "Compatibility alias. Atlas capabilities generate native Hermes skills."
+  }));
+
+  if (config.legacyWhatsappWebhookEnabled) {
+    await registerWhatsAppRoutes(app, pool, config);
+  }
+  await registerMcpRoutes(app, pool, config);
   await registerBridgeRoutes(app, pool, config);
 
   return app;

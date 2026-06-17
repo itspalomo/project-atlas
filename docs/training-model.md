@@ -33,9 +33,9 @@ Performed workouts use:
 
 Use `externalId` whenever the source has a stable identifier, such as a HealthKit workout UUID or local mobile id. Atlas upserts by `userId + source + externalId`, then replaces child exercises and sets so retries are safe.
 
-## Agent Chat Context
+## Hermes Context Access
 
-When an agent has the `training` skill, Atlas includes a bounded deterministic context snapshot in the Hermes chat request. The snapshot contains recent user-scoped planned workouts, performed workouts, exercises, and sets. Hermes does not receive direct database access; Atlas decides which structured facts are exposed for the requesting user and agent.
+When an agent has the `training` Atlas capability, the generated Hermes `atlas-context` skill instructs Hermes to use the Atlas MCP tool for deterministic context. The snapshot contains recent user-scoped planned workouts, performed workouts, exercises, and sets. Hermes does not receive direct database access; Atlas decides which structured facts are exposed for the requested user and agent.
 
 ## Privacy
 

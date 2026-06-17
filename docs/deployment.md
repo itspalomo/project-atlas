@@ -36,7 +36,7 @@ curl -fsSL https://raw.githubusercontent.com/itspalomo/project-atlas/main/script
 
 The install script works in two modes. When run outside a checkout, including through `curl | bash`, it installs base package dependencies where supported, clones or updates Atlas, creates `.env` from `.env.example` when missing, copies supported environment overrides into `.env`, installs the `atlas` CLI, and runs the local installer. When run inside a checkout, it installs that checkout directly.
 
-After editing `.env` or `ecosystem/atlas.yaml`, run `atlas apply` to rerun migrations, converge seeded identity metadata and agents, regenerate Hermes profile assets and gateway allowlists, and restart Atlas API.
+After editing `.env` or `ecosystem/atlas.yaml`, run `atlas apply` to rerun migrations, converge seeded identity metadata and agents, regenerate Hermes profile assets, native skill files, MCP config, Honcho config, and gateway allowlists, and restart Atlas API.
 
 Use the CLI after install:
 
@@ -62,7 +62,7 @@ The installer:
 6. Starts Atlas PostgreSQL and self-hosted Honcho.
 7. Runs migrations.
 8. Seeds users, agents, channel identity metadata, and membership from `ecosystem/atlas.yaml`.
-9. Generates Hermes profile assets, skill manifests, and native Honcho memory-provider configs.
+9. Generates Hermes profile assets, native Atlas capability skills, MCP config, gateway allowlists, and native Honcho memory-provider configs.
 10. Starts Atlas API.
 
 Installer environment knobs:
@@ -89,9 +89,9 @@ The installer is safe to rerun:
 
 ## Ecosystem Config
 
-The local ecosystem file controls identity, agents, bridge scopes, and generated runtime config. Atlas writes Hermes WhatsApp gateway allowlists and Honcho memory-provider config from this file. Hermes remains the runtime and handles model/provider auth, WhatsApp sender allowlists, and native memory-provider integration.
+The local ecosystem file controls identity metadata, agents, bridge scopes, and generated runtime config. Atlas writes Hermes WhatsApp gateway allowlists, native skill files, MCP config, and Honcho memory-provider config from this file. Hermes remains the runtime and handles model/provider auth, WhatsApp sender allowlists, native skills, MCP discovery, and native memory-provider integration.
 
-If `ecosystem/atlas.yaml` does not exist, the installer opens an onboarding questionnaire. It asks for an optional install label, allowed users, WhatsApp numbers, shared or personal agents, Hermes profile names, optional per-agent Hermes endpoint overrides, Honcho memory workspaces, and enabled Atlas bridge capabilities. It does not ask for OpenAI or LLM provider keys; those stay with the Hermes/runtime auth provider.
+If `ecosystem/atlas.yaml` does not exist, the installer opens an onboarding questionnaire. It asks for an optional install label, allowed users, WhatsApp numbers, shared or personal agents, Hermes profile names, optional legacy Hermes endpoint overrides, Honcho memory workspaces, and enabled Atlas bridge capabilities. It does not ask for OpenAI or LLM provider keys; those stay with the Hermes/runtime auth provider.
 
 ```yaml
 users:
@@ -115,6 +115,7 @@ agents:
       aliases:
         - "family:"
         - "/family"
+    # Atlas custom capability ids. These generate a Hermes native atlas-context skill.
     skills:
       - household
       - planning
@@ -137,9 +138,14 @@ scripts/init-hermes-profiles.sh
 docker compose --profile runtime up -d --build hermes
 ```
 
-`scripts/init-hermes-profiles.sh` writes profile directories under `data/hermes/profiles/`. Each generated profile includes `config.yaml` with `memory.provider: honcho` and a profile-local `honcho.json` pointing at the self-hosted Honcho API. Compose mounts `data/hermes` at `/opt/data`, which is the Hermes data root in the container.
+`scripts/init-hermes-profiles.sh` writes profile directories under `data/hermes/profiles/`. Each generated profile includes:
 
-Set `ATLAS_RUNTIME_MODE=hermes` after the Hermes profile endpoints are reachable.
+- `config.yaml` with `memory.provider: honcho` and `mcp_servers.atlas`.
+- `skills/atlas-context/SKILL.md` for Atlas custom bridge/data capabilities.
+- `atlas-capabilities.json` for deterministic Atlas metadata.
+- A profile-local `honcho.json` pointing at the self-hosted Honcho API.
+
+Compose mounts `data/hermes` at `/opt/data`, which is the Hermes data root in the container. Leave `ATLAS_RUNTIME_MODE=stub` unless you intentionally enable the legacy Atlas WhatsApp/chat proxy for local testing.
 
 ## Honcho
 

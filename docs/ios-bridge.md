@@ -1,6 +1,6 @@
 # iOS Bridge
 
-Atlas Bridge is the capability layer for Apple-only data and local device actions. It is not an agent runtime.
+Atlas Bridge is the custom capability layer for Apple-only data and local device actions. It is not an agent runtime. Hermes reaches bridge-derived context through Atlas' MCP tools when the generated `atlas-context` skill is relevant.
 
 ## HealthKit
 

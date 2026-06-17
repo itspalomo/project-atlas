@@ -6,9 +6,10 @@ Atlas owns:
 
 - Persistent user and agent identities.
 - Identity metadata and generated Hermes gateway allowlist values.
-- Built-in skill catalog and generated skill manifests.
+- Atlas custom capability catalog and generated Hermes skill files.
 - Structured facts in PostgreSQL.
 - Honcho workspace names in generated Hermes profile config.
+- Atlas MCP tools for custom structured context.
 - Approval workflows.
 - Integration ingress and egress.
 - Audit logs.
@@ -18,6 +19,7 @@ Hermes owns:
 - The runtime conversation loop.
 - Tool execution inside its configured sandbox.
 - Agent profile behavior.
+- Native skills and MCP tool discovery.
 - Native memory-provider activation and Honcho memory access.
 
 Honcho owns:
@@ -33,7 +35,7 @@ flowchart TD
   WA["WhatsApp Cloud API"] -->|"signed webhook"| H
   IOS["iOS Bridge"] -->|"private bridge API"| API
   API --> PG["Atlas PostgreSQL"]
-  H -->|"structured facts + approvals"| API
+  H -->|"Atlas MCP tools + approvals"| API
   H --> HC["Self-hosted Honcho API"]
   HC --> HPG["Honcho PostgreSQL + pgvector"]
   HC --> HR["Honcho Redis"]
@@ -66,8 +68,8 @@ PostgreSQL is the source of truth for facts:
 
 Honcho is the memory layer for conversational and preference memory. Atlas generates Hermes profile-local `honcho.json` files with the intended workspace ids, and Hermes uses its native Honcho memory provider to read and write memory. Atlas does not merge workspaces automatically.
 
-## Skills
+## Native Skills And Custom Capabilities
 
-Skills are configured per agent in `ecosystem/atlas.yaml`. Atlas validates skill ids, stores a manifest in the agent config, appends a minimal data-capability map to generated Hermes `SOUL.md` files, and writes a profile-local `skills.json`.
+Hermes owns the native skill system. Atlas capability ids are configured per agent in `ecosystem/atlas.yaml`; Atlas validates those ids, stores them as deterministic metadata, and generates a profile-local Hermes skill at `skills/atlas-context/SKILL.md`.
 
-Skills are not a prompt-only security mechanism or persona system. Hermes remains the reasoning runtime; Atlas provides scoped facts, bridge context, generated memory-provider config, and approval boundaries. WhatsApp identity is enforced by Hermes gateway allowlists; bridge data scoping and approvals remain enforced by Atlas API and the iOS bridge.
+Atlas custom data is exposed to Hermes through the generated `mcp_servers.atlas` config and the `atlas_get_context` MCP tool. Hermes remains the reasoning runtime; Atlas provides scoped facts, bridge context, generated memory-provider config, and approval records. WhatsApp identity is enforced by Hermes gateway allowlists; bridge data scoping and approvals remain enforced by Atlas API and the iOS bridge.

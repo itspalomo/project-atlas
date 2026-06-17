@@ -101,7 +101,7 @@ export const builtInSkills: AtlasSkill[] = [
     id: "memory",
     title: "Honcho Memory",
     category: "memory",
-    summary: "Use the configured Honcho workspace while respecting Atlas memory isolation.",
+    summary: "Use Hermes' native Honcho provider with the Atlas-generated workspace config.",
     structuredFacts: ["honcho workspace id", "shared memory grants"],
     allowedActions: ["Use workspace memory for preferences", "Summarize remembered preferences"],
     approvalRequired: ["Copying personal memory into a shared workspace", "Using revoked shared memory"]
@@ -110,9 +110,9 @@ export const builtInSkills: AtlasSkill[] = [
     id: "whatsapp",
     title: "WhatsApp Messaging",
     category: "channel",
-    summary: "Adapt responses for the WhatsApp channel and its allowlisted identity model.",
-    structuredFacts: ["identity channels", "inbound messages", "outbound messages", "audit logs"],
-    allowedActions: ["Reply to authorized senders", "Use configured shared-agent aliases"],
+    summary: "Adapt responses for Hermes' WhatsApp gateway and generated allowlist model.",
+    structuredFacts: ["Hermes gateway allowlists", "Atlas identity metadata", "audit logs"],
+    allowedActions: ["Reply to authorized senders through Hermes", "Use configured shared-agent aliases"],
     approvalRequired: ["Messaging another user proactively", "Sharing private facts in a group or shared context"]
   }
 ];
@@ -143,23 +143,44 @@ export function skillManifestForIds(skillIds: string[]): AtlasSkill[] {
   return resolveSkills(skillIds);
 }
 
-export function renderSkillPrompt(skillIds: string[]): string {
+export function renderAtlasCapabilitySkill(skillIds: string[]): string {
   const skills = resolveSkills(skillIds);
-  if (skills.length === 0) {
-    return "";
-  }
+  const capabilityLines =
+    skills.length === 0
+      ? ["- No Atlas custom data capabilities are enabled for this profile yet."]
+      : skills.flatMap((skill) => [
+          `- ${skill.id}: ${skill.summary}`,
+          `  - Structured facts: ${skill.structuredFacts.join(", ")}.`,
+          `  - Allowed actions: ${skill.allowedActions.join(", ")}.`,
+          `  - Approval required for: ${skill.approvalRequired.join(", ")}.`
+        ]);
 
   return [
-    "## Atlas Data Capabilities",
+    "---",
+    "name: atlas-context",
+    "description: Use Atlas custom bridge and deterministic data surfaces when the user asks about shared household context, iOS bridge data, health, training, nutrition, calendar availability, reminders, approvals, or semantic location.",
+    "---",
     "",
-    "Enabled capability ids describe which Atlas structured facts and bridge surfaces may be available.",
-    "Atlas may include scoped deterministic context for these domains in chat requests. If needed data is absent, ask the user to connect or authorize the iOS bridge, or to provide the missing information directly.",
+    "# Atlas Context",
     "",
-    ...skills.flatMap((skill) => [
-      `- ${skill.id}: ${skill.summary}`,
-      `  Structured facts: ${skill.structuredFacts.join(", ")}.`,
-      ""
-    ])
+    "Atlas is a custom data and bridge layer. Hermes owns messaging, model/provider auth, profile behavior, native skills, tools, MCP, and memory providers.",
+    "",
+    "## When To Use",
+    "",
+    "Load this skill when a user asks for Atlas-managed structured facts or bridge actions, including iOS HealthKit summaries, workout plans, performed workouts, nutrition intake, free/busy calendar context, Apple Reminders proposals, semantic location, approvals, or household-scoped custom facts.",
+    "",
+    "## Procedure",
+    "",
+    "1. Use Hermes-native messaging, memory, skills, and tools first.",
+    "2. For Atlas-managed deterministic facts, use the Atlas MCP server when it is configured. The primary tool is `mcp_atlas_atlas_get_context`.",
+    "3. Pass the Atlas `userId`, `agentId`, and relevant capability ids from this profile's generated metadata.",
+    "4. If Atlas returns no context, or the user has not connected or authorized the iOS bridge data, ask the user to connect or authorize the bridge data, or to provide the missing information in chat.",
+    "5. Do not claim access to raw HealthKit samples, raw calendar event details, or raw location history. Atlas stores summaries, busy windows, and semantic places unless the user explicitly shares more through the bridge.",
+    "6. Calendar, reminder, goal, training-plan, commitment, and cross-user sharing writes require Atlas approval records and iOS bridge execution.",
+    "",
+    "## Enabled Capabilities",
+    "",
+    ...capabilityLines
   ]
     .join("\n")
     .trimEnd();
