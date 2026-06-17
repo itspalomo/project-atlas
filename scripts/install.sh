@@ -227,14 +227,6 @@ apply_env_overrides() {
     ATLAS_MCP_URL \
     ATLAS_MCP_KEY \
     ATLAS_ECOSYSTEM_CONFIG \
-    ATLAS_LEGACY_WHATSAPP_WEBHOOK_ENABLED \
-    WHATSAPP_GRAPH_API_VERSION \
-    WHATSAPP_PHONE_NUMBER_ID \
-    WHATSAPP_ACCESS_TOKEN \
-    WHATSAPP_APP_SECRET \
-    WHATSAPP_VERIFY_TOKEN \
-    WHATSAPP_SEND_UNAUTHORIZED_REPLY \
-    WHATSAPP_REQUEST_TIMEOUT_MS \
     WHATSAPP_CLOUD_PHONE_NUMBER_ID \
     WHATSAPP_CLOUD_ACCESS_TOKEN \
     WHATSAPP_CLOUD_APP_SECRET \
@@ -243,10 +235,6 @@ apply_env_overrides() {
     WHATSAPP_CLOUD_WEBHOOK_PORT \
     WHATSAPP_CLOUD_WEBHOOK_PATH \
     WHATSAPP_CLOUD_API_VERSION \
-    ATLAS_RUNTIME_MODE \
-    HERMES_BASE_URL \
-    HERMES_ENDPOINT_TEMPLATE \
-    HERMES_MODEL \
     HERMES_DASHBOARD_PORT \
     HERMES_GATEWAY_PORT \
     HONCHO_SOURCE_DIR \
@@ -361,7 +349,7 @@ install_from_checkout() {
     info "Skipping Linux system dependency and Tailscale setup on $(uname -s)."
   fi
 
-  if grep -Eq 'change-me-generate-with-openssl|POSTGRES_PASSWORD=$|ATLAS_MCP_KEY=$|ATLAS_BRIDGE_API_KEY=$|WHATSAPP_VERIFY_TOKEN=$|WHATSAPP_CLOUD_VERIFY_TOKEN=$' .env; then
+  if grep -Eq 'change-me-generate-with-openssl|POSTGRES_PASSWORD=$|ATLAS_MCP_KEY=$|ATLAS_BRIDGE_API_KEY=$|WHATSAPP_CLOUD_VERIFY_TOKEN=$' .env; then
     run_command "Rotating local placeholder secrets" scripts/rotate-local-secrets.sh
   else
     section "Checking local secrets"

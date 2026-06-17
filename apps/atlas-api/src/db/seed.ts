@@ -76,11 +76,7 @@ async function main(): Promise<void> {
           honchoWorkspace,
           JSON.stringify({
             skills: agent.skills,
-            skillManifest,
-            routingAliases: agent.routing.aliases,
-            defaultFor: agent.routing.defaultFor,
-            runtime: agent.runtime,
-            prompt: agent.prompt ?? null
+            skillManifest
           })
         ]
       );
@@ -170,7 +166,7 @@ type MembershipRole = "owner" | "member";
 function desiredMembershipsForAgent(agent: SeedAgent): Map<string, MembershipRole> {
   const memberships = new Map<string, MembershipRole>();
 
-  for (const userId of unique([...agent.members, ...agent.routing.defaultFor])) {
+  for (const userId of unique(agent.members)) {
     memberships.set(userId, "member");
   }
 
@@ -194,7 +190,6 @@ function desiredIdentityExternalIdsByChannel(identities: SeedIdentity[]): Map<st
 
 function findDefaultAgentForUser(agents: SeedAgent[], userId: string): SeedAgent | undefined {
   return (
-    agents.find((agent) => agent.routing.defaultFor.includes(userId)) ??
     agents.find((agent) => agent.type === "personal" && agent.owners.includes(userId)) ??
     agents.find((agent) => agent.type === "shared" && [...agent.members, ...agent.owners].includes(userId))
   );

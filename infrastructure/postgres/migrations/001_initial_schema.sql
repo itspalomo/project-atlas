@@ -51,32 +51,6 @@ create table if not exists bridge_devices (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists inbound_messages (
-  id uuid primary key default gen_random_uuid(),
-  channel text not null,
-  channel_message_id text not null,
-  channel_sender_id text not null,
-  user_id text references users(id) on delete set null,
-  agent_id text references agents(id) on delete set null,
-  body text not null,
-  received_at timestamptz not null default now(),
-  created_at timestamptz not null default now(),
-  unique (channel, channel_message_id)
-);
-
-create table if not exists outbound_messages (
-  id uuid primary key default gen_random_uuid(),
-  channel text not null,
-  channel_recipient_id text not null,
-  user_id text references users(id) on delete set null,
-  agent_id text references agents(id) on delete set null,
-  body text not null,
-  runtime text not null,
-  provider_status text,
-  sent_at timestamptz not null default now(),
-  created_at timestamptz not null default now()
-);
-
 create table if not exists health_daily_summaries (
   id uuid primary key default gen_random_uuid(),
   user_id text not null references users(id) on delete cascade,

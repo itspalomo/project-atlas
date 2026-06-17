@@ -30,15 +30,6 @@ agents:
     members:
       - user-one
       - user-two
-    routing:
-      defaultFor:
-        - user-one
-        - user-two
-      aliases:
-        - "family:"
-        - "/family"
-        - "household:"
-        - "/household"
     skills:
       - household
       - planning

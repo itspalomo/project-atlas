@@ -1,11 +1,10 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import yaml from "js-yaml";
 import { loadConfig } from "../config.js";
 import {
   agentHermesProfile,
   agentHonchoWorkspace,
-  agentPrompt,
   loadEcosystemConfig
 } from "../ecosystem/ecosystemConfig.js";
 import { renderAtlasCapabilitySkill, skillManifestForIds } from "../skills/skillCatalog.js";
@@ -21,73 +20,38 @@ async function main(): Promise<void> {
   const ecosystem = await loadEcosystemConfig(config.ecosystemConfigPath);
   const outDir = path.resolve(process.cwd(), args.outDir);
   const homeDir = path.resolve(process.cwd(), args.homeDir ?? path.dirname(outDir));
-  const allowedWhatsAppUsers = ecosystemWhatsAppAllowedUsers(ecosystem);
 
   await mkdir(outDir, { recursive: true });
-  await writeHermesAtlasEnv(homeDir, allowedWhatsAppUsers);
+  await mkdir(homeDir, { recursive: true });
 
   const manifest = {
     project: ecosystem.project,
     honchoBaseUrl: config.honcho?.baseUrl ?? "http://honcho-api:8000",
-    messaging: {
-      whatsappAllowedUsers: allowedWhatsAppUsers
-    },
     profiles: ecosystem.agents.map((agent) => ({
       id: agent.id,
       displayName: agent.displayName,
       hermesProfile: agentHermesProfile(agent),
       honchoWorkspace: agentHonchoWorkspace(agent),
-      capabilities: agent.skills
+      capabilities: agent.skills,
+      whatsappAllowedUsers: agentWhatsAppAllowedUsers(ecosystem, agent)
     }))
   };
-  const desiredProfiles = new Set(manifest.profiles.map((profile) => profile.hermesProfile));
-
-  await removeStaleProfiles(outDir, desiredProfiles);
 
   for (const agent of ecosystem.agents) {
     const profile = agentHermesProfile(agent);
     const profileDir = path.join(outDir, profile);
     const honchoWorkspace = agentHonchoWorkspace(agent);
     const skillManifest = skillManifestForIds(agent.skills);
+    const allowedWhatsAppUsers = agentWhatsAppAllowedUsers(ecosystem, agent);
     const honchoHosts = hermesHonchoHosts(profile, {
       aiPeer: agent.id,
       peerName: ecosystem.project.id,
       workspace: honchoWorkspace
     });
 
-    await rm(profileDir, { recursive: true, force: true });
     await mkdir(profileDir, { recursive: true });
-    await writeFile(
-      path.join(profileDir, "config.yaml"),
-      yaml.dump(
-        {
-          whatsapp: {
-            unauthorized_dm_behavior: "ignore"
-          },
-          memory: {
-            provider: "honcho",
-            memory_enabled: true,
-            user_profile_enabled: true
-          },
-          mcp_servers: {
-            atlas: {
-              url: "${ATLAS_MCP_URL}",
-              headers: {
-                Authorization: "Bearer ${ATLAS_MCP_KEY}"
-              },
-              tools: {
-                include: ["atlas_get_context"],
-                prompts: false,
-                resources: false
-              }
-            }
-          }
-        },
-        { noRefs: true, lineWidth: 120 }
-      ),
-      "utf8"
-    );
-    await writeFile(path.join(profileDir, "SOUL.md"), `${agentPrompt(agent)}\n`, "utf8");
+    await mergeProfileConfig(path.join(profileDir, "config.yaml"));
+    await upsertProfileEnv(path.join(profileDir, ".env"), allowedWhatsAppUsers);
     const skillDir = path.join(profileDir, "skills", "atlas-context");
     await mkdir(skillDir, { recursive: true });
     await writeFile(path.join(skillDir, "SKILL.md"), `${renderAtlasCapabilitySkill(agent.skills)}\n`, "utf8");
@@ -129,10 +93,24 @@ async function main(): Promise<void> {
   console.log(`Generated ${ecosystem.agents.length} Hermes profile(s) in ${outDir}`);
 }
 
-function ecosystemWhatsAppAllowedUsers(ecosystem: Awaited<ReturnType<typeof loadEcosystemConfig>>): string[] {
+function agentWhatsAppAllowedUsers(
+  ecosystem: Awaited<ReturnType<typeof loadEcosystemConfig>>,
+  agent: Awaited<ReturnType<typeof loadEcosystemConfig>>["agents"][number]
+): string[] {
+  const allowedUserIds = new Set([
+    ...agent.owners,
+    ...agent.members,
+    ...ecosystem.users
+      .filter((user) => user.identities.some((identity) => identity.enabled && identity.defaultAgent === agent.id))
+      .map((user) => user.id)
+  ]);
   const allowedUsers = new Set<string>();
 
   for (const user of ecosystem.users) {
+    if (!allowedUserIds.has(user.id)) {
+      continue;
+    }
+
     for (const identity of user.identities) {
       if (identity.channel !== "whatsapp" || !identity.enabled) {
         continue;
@@ -152,13 +130,112 @@ function normalizeWhatsAppUser(externalId: string): string {
   return externalId.replace(/\D/g, "");
 }
 
-async function writeHermesAtlasEnv(homeDir: string, allowedWhatsAppUsers: string[]): Promise<void> {
-  await mkdir(homeDir, { recursive: true });
+async function mergeProfileConfig(configPath: string): Promise<void> {
+  const existing = await readYamlObject(configPath);
+  const atlasManagedConfig = {
+    whatsapp: {
+      unauthorized_dm_behavior: "ignore"
+    },
+    memory: {
+      provider: "honcho",
+      memory_enabled: true,
+      user_profile_enabled: true
+    },
+    mcp_servers: {
+      atlas: {
+        url: "${ATLAS_MCP_URL}",
+        headers: {
+          Authorization: "Bearer ${ATLAS_MCP_KEY}"
+        },
+        tools: {
+          include: ["atlas_get_context"],
+          prompts: false,
+          resources: false
+        }
+      }
+    }
+  };
+  const merged = deepMerge(existing, atlasManagedConfig);
 
+  await writeFile(configPath, yaml.dump(merged, { noRefs: true, lineWidth: 120 }), "utf8");
+}
+
+async function readYamlObject(filePath: string): Promise<Record<string, unknown>> {
+  let raw: string;
+
+  try {
+    raw = await readFile(filePath, "utf8");
+  } catch (error) {
+    if (isNotFound(error)) {
+      return {};
+    }
+    throw error;
+  }
+
+  const parsed = yaml.load(raw);
+  if (parsed === undefined || parsed === null) {
+    return {};
+  }
+  if (!isPlainObject(parsed)) {
+    throw new Error(`${filePath} must contain a YAML mapping before Atlas can merge profile settings`);
+  }
+
+  return parsed;
+}
+
+function deepMerge(base: Record<string, unknown>, override: Record<string, unknown>): Record<string, unknown> {
+  const next: Record<string, unknown> = { ...base };
+
+  for (const [key, value] of Object.entries(override)) {
+    const existing = next[key];
+    next[key] =
+      isPlainObject(existing) && isPlainObject(value)
+        ? deepMerge(existing, value)
+        : value;
+  }
+
+  return next;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+async function upsertProfileEnv(envPath: string, allowedWhatsAppUsers: string[]): Promise<void> {
+  const existing = await readTextFile(envPath);
+  const withoutExistingManagedBlock = existing.replace(
+    /\n?# BEGIN ATLAS MANAGED WHATSAPP ALLOWLIST[\s\S]*?# END ATLAS MANAGED WHATSAPP ALLOWLIST\n?/g,
+    "\n"
+  );
+  const unmanagedLines = withoutExistingManagedBlock
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*(?:export\s+)?(?:WHATSAPP_ALLOWED_USERS|WHATSAPP_CLOUD_ALLOWED_USERS)\s*=/.test(line));
+  const unmanagedContent = unmanagedLines.join("\n").trimEnd();
+  const managedBlock = renderProfileEnvBlock(allowedWhatsAppUsers);
+  const nextContent = unmanagedContent.length > 0 ? `${unmanagedContent}\n\n${managedBlock}\n` : `${managedBlock}\n`;
+
+  await writeFile(envPath, nextContent, "utf8");
+}
+
+async function readTextFile(filePath: string): Promise<string> {
+  try {
+    return await readFile(filePath, "utf8");
+  } catch (error) {
+    if (isNotFound(error)) {
+      return "";
+    }
+    throw error;
+  }
+}
+
+function isNotFound(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "ENOENT";
+}
+
+function renderProfileEnvBlock(allowedWhatsAppUsers: string[]): string {
   const lines = [
-    "# Generated by Atlas from ecosystem/atlas.yaml.",
-    "# Keep provider credentials in Hermes' own .env or the root Atlas .env, not in this managed file.",
-    ""
+    "# BEGIN ATLAS MANAGED WHATSAPP ALLOWLIST",
+    "# Generated by Atlas from ecosystem/atlas.yaml. Other Hermes credentials in this file are preserved."
   ];
 
   if (allowedWhatsAppUsers.length > 0) {
@@ -167,10 +244,14 @@ async function writeHermesAtlasEnv(homeDir: string, allowedWhatsAppUsers: string
     lines.push(`WHATSAPP_ALLOWED_USERS=${allowlist}`);
     lines.push(`WHATSAPP_CLOUD_ALLOWED_USERS=${allowlist}`);
   } else {
-    lines.push("# No WhatsApp identities are configured; Hermes will deny inbound WhatsApp by default.");
+    lines.push("# No WhatsApp identities are configured for this profile; Hermes should deny inbound WhatsApp by default.");
+    lines.push("WHATSAPP_ALLOWED_USERS=");
+    lines.push("WHATSAPP_CLOUD_ALLOWED_USERS=");
   }
 
-  await writeFile(path.join(homeDir, "atlas.env"), `${lines.join("\n")}\n`, "utf8");
+  lines.push("# END ATLAS MANAGED WHATSAPP ALLOWLIST");
+
+  return lines.join("\n");
 }
 
 type HonchoHostConfig = {
@@ -185,34 +266,6 @@ function hermesHonchoHosts(profile: string, host: Omit<HonchoHostConfig, "enable
   const profileHostKey = profile === "default" || profile === "hermes" ? "hermes" : `hermes.${profile}`;
 
   return profileHostKey === "hermes" ? { hermes: config } : { hermes: config, [profileHostKey]: config };
-}
-
-async function removeStaleProfiles(outDir: string, desiredProfiles: Set<string>): Promise<void> {
-  const manifestPath = path.join(outDir, "atlas-profiles.json");
-  const previousProfiles = await readPreviousProfiles(manifestPath);
-
-  for (const profile of previousProfiles) {
-    if (!desiredProfiles.has(profile)) {
-      await rm(path.join(outDir, profile), { recursive: true, force: true });
-    }
-  }
-}
-
-async function readPreviousProfiles(manifestPath: string): Promise<string[]> {
-  try {
-    const raw = await readFile(manifestPath, "utf8");
-    const parsed = JSON.parse(raw) as {
-      profiles?: Array<{ hermesProfile?: unknown }>;
-    };
-
-    return (
-      parsed.profiles
-        ?.map((profile) => profile.hermesProfile)
-        .filter((profile): profile is string => typeof profile === "string" && profile.length > 0) ?? []
-    );
-  } catch {
-    return [];
-  }
 }
 
 function parseArgs(argv: string[]): Args {

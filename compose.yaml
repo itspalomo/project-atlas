@@ -141,8 +141,6 @@ services:
     env_file:
       - path: .env
         required: false
-      - path: ./data/hermes/atlas.env
-        required: false
     environment:
       HERMES_HOME: /opt/data
       HONCHO_BASE_URL: ${HONCHO_BASE_URL:-http://honcho-api:8000}

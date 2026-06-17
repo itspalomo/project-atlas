@@ -12,7 +12,7 @@
 ## WhatsApp Identity
 
 - Phone numbers are normalized to digits from `ecosystem/atlas.yaml`.
-- `atlas apply` writes those numbers to Hermes' managed `data/hermes/atlas.env` allowlists.
+- `atlas apply` merges those numbers into each generated Hermes profile's Atlas-managed `.env` allowlist block.
 - Hermes rejects unknown WhatsApp Cloud senders through `WHATSAPP_CLOUD_ALLOWED_USERS`.
 - Meta webhook signatures are verified by Hermes with `WHATSAPP_CLOUD_APP_SECRET`.
 - The Hermes verification token is random and stored in `.env` as `WHATSAPP_CLOUD_VERIFY_TOKEN`.

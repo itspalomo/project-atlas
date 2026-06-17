@@ -41,10 +41,10 @@ Services:
   logs [svc]   Tail logs, optionally for one service
   update       Pull latest repo changes and rerun install
 
-Data/runtime:
+Data/Hermes:
   migrate      Run Postgres migrations
   seed         Seed users, agents, and identity metadata
-  profiles     Generate Hermes config.yaml, SOUL.md, native skill, MCP, and honcho files
+  profiles     Merge Hermes config.yaml settings and generate Atlas native skill, MCP, and honcho files
   runtime      Start Hermes runtime profile
   runtime-off  Stop Hermes runtime profile
   honcho       Clone/start self-hosted Honcho

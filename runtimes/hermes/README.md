@@ -13,4 +13,6 @@ docker compose --profile runtime up -d --build hermes
 
 This starts Hermes with generated profiles, native Atlas capability skills, the Atlas MCP server config, Hermes WhatsApp gateway allowlists, and Honcho memory-provider config.
 
-Leave `ATLAS_RUNTIME_MODE=stub` unless you intentionally use the legacy Atlas chat proxy for local testing.
+For the normal multi-agent case, use one Hermes container with many profiles. Each configured Atlas agent becomes a Hermes profile with its own `config.yaml`, `.env`, skills, Honcho workspace, sessions, and gateway state.
+
+Use separate Hermes containers only when you intentionally need stronger resource, network, image-version, or compliance isolation.

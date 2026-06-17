@@ -18,7 +18,6 @@ replace_if_placeholder() {
 
 replace_if_placeholder "POSTGRES_PASSWORD"
 replace_if_placeholder "ATLAS_MCP_KEY"
-replace_if_placeholder "WHATSAPP_VERIFY_TOKEN"
 replace_if_placeholder "WHATSAPP_CLOUD_VERIFY_TOKEN"
 replace_if_placeholder "ATLAS_BRIDGE_API_KEY"
 replace_if_placeholder "HONCHO_AUTH_JWT_SECRET"

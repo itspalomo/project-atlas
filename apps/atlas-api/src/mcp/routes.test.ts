@@ -116,19 +116,10 @@ function config(overrides: { nodeEnv: string; mcpKey?: string }): AtlasConfig {
     port: 3000,
     databaseUrl: "postgres://atlas:atlas@localhost:5432/atlas",
     ecosystemConfigPath: "ecosystem/atlas.yaml",
-    whatsapp: {
-      graphApiVersion: "v24.0",
-      verifyToken: "verify",
-      requestTimeoutMs: 10_000,
-      sendUnauthorizedReply: false
-    },
-    legacyWhatsappWebhookEnabled: false,
     mcp: {
       url: "http://atlas-api:3000/mcp",
       key: overrides.mcpKey
     },
-    runtimeMode: "stub",
-    hermesModel: "hermes",
     honcho: {}
   };
 }

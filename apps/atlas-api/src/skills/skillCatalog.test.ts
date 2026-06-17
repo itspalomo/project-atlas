@@ -11,7 +11,7 @@ describe("skill catalog", () => {
     expect(() => validateSkillIds(["unknown"], "Agent household")).toThrow(/unknown skill unknown/);
   });
 
-  it("renders data capability context as a Hermes skill without leaking prompt-only fields into the manifest", () => {
+  it("renders data capability context as a Hermes skill without leaking non-capability fields into the manifest", () => {
     const prompt = renderAtlasCapabilitySkill(["health"]);
     expect(prompt).toContain("name: atlas-context");
     expect(prompt).toContain("health: Use summarized HealthKit-derived metrics");

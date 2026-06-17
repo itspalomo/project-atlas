@@ -2,7 +2,7 @@
 
 Project Atlas is a private personal-agent ecosystem installer and customization layer for individuals and families. Hermes owns the agent runtime: messaging, profiles, native skills, MCP tools, model/provider auth, and memory providers. Atlas generates Hermes config and provides custom structured-data, iOS bridge, approval, and deployment surfaces.
 
-Atlas is self-serve. A local `ecosystem/atlas.yaml` file defines the users, their WhatsApp identities, shared or personal agents, routing aliases, Hermes profiles, and Honcho memory workspaces for each installation. The repository does not ship with named built-in people.
+Atlas is self-serve. A local `ecosystem/atlas.yaml` file defines users, WhatsApp identities, shared or personal Hermes profiles, profile membership, and Honcho memory workspaces for each installation. The repository does not ship with named built-in people.
 
 ## What Is Included
 

@@ -45,10 +45,22 @@ flowchart TD
   Admin --> HC
 ```
 
+## Hermes Profile Topology
+
+Atlas treats each configured agent as a Hermes profile. For example:
+
+- `jose`: a personal Hermes profile with Jose's WhatsApp number in that profile's `.env` allowlist.
+- `wife`: a personal Hermes profile with the spouse's WhatsApp number in that profile's `.env` allowlist.
+- `family`: a shared Hermes profile with both numbers in that profile's `.env` allowlist and its own Honcho workspace.
+
+The default deployment is one Hermes container supervising all profiles. This matches Hermes' native Docker profile model and keeps upgrades, logs, backups, and profile creation simpler. Use one container per profile only for hard isolation needs such as separate resource limits, network segmentation, image pinning, or compliance boundaries.
+
+Profiles have separate memory by default because Atlas generates separate Honcho workspace names. If two profiles should intentionally view the same memory, set the same `honchoWorkspace` for those agents in `ecosystem/atlas.yaml`. If profiles should talk to each other, prefer Hermes-native profile/gateway/tooling patterns; Atlas should not proxy those conversations.
+
 ## WhatsApp Rules
 
 - Allowed WhatsApp numbers are defined in `ecosystem/atlas.yaml`.
-- Atlas generates Hermes' `WHATSAPP_ALLOWED_USERS` and `WHATSAPP_CLOUD_ALLOWED_USERS` values in `data/hermes/atlas.env`.
+- Atlas merges Hermes' `WHATSAPP_ALLOWED_USERS` and `WHATSAPP_CLOUD_ALLOWED_USERS` values into each profile's `.env` without overwriting Hermes-owned credentials.
 - Hermes' WhatsApp gateway rejects unknown senders before the agent loop.
 - Atlas still stores identity records for bridge scoping, structured facts, approvals, and audit trails.
 

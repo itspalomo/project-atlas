@@ -155,20 +155,6 @@ prompt_optional_phone() {
   done
 }
 
-prompt_optional_url() {
-  local label="$1"
-  local default_value="$2"
-  local help_text="$3"
-
-  while true; do
-    prompt_text "$label" "$default_value" "$help_text"
-    if [[ -z "$PROMPT_RESULT" || "$PROMPT_RESULT" =~ ^https?:// ]]; then
-      return 0
-    fi
-    fail "Enter a full http:// or https:// URL, or leave it blank."
-  done
-}
-
 prompt_count() {
   local label="$1"
   local default_value="$2"
@@ -370,7 +356,7 @@ done
 section "3. Agents"
 info "An agent is the thing a user chats with. It can be shared, like a family agent, or personal."
 info "Each agent gets:"
-info "- a Hermes profile name, so Hermes knows which profile/config to run"
+info "- a Hermes profile name, so Hermes knows which profile/config/gateway to run"
 info "- a Honcho workspace, so memory stays scoped to that agent"
 info "- Atlas capability switches, which generate a Hermes native skill for custom bridge/data facts"
 prompt_count "How many agents should Atlas create now?" "1" "Start with one shared family agent unless you already know you want multiple."
@@ -381,11 +367,8 @@ agent_names=()
 agent_types=()
 agent_profiles=()
 agent_workspaces=()
-agent_runtime_urls=()
 agent_members_csv=()
 agent_owners_csv=()
-agent_default_for_csv=()
-agent_aliases_csv=()
 agent_skills_csv=()
 
 for index in $(seq 1 "$agent_count"); do
@@ -398,7 +381,7 @@ for index in $(seq 1 "$agent_count"); do
     default_agent_name="$project_name"
   fi
 
-  prompt_slug "Agent id" "$default_agent_id" "Internal stable id for routing, memory, and profile generation."
+  prompt_slug "Agent id" "$default_agent_id" "Internal stable id for identity metadata, memory, and profile generation."
   agent_id="$PROMPT_RESULT"
   while [[ "${#agent_ids[@]}" -gt 0 ]] && array_contains "$agent_id" "${agent_ids[@]}"; do
     fail "That agent id is already used."
@@ -443,21 +426,6 @@ for index in $(seq 1 "$agent_count"); do
   prompt_text "Honcho memory workspace" "$hermes_profile" "Memory is isolated by workspace. Use a unique workspace per agent unless you intentionally want shared memory."
   honcho_workspace="$PROMPT_RESULT"
 
-  prompt_optional_url "Hermes endpoint override" "" "Optional. Leave blank to use global HERMES_BASE_URL/HERMES_ENDPOINT_TEMPLATE. Set only if this agent should call a specific Hermes endpoint URL."
-  runtime_url="$PROMPT_RESULT"
-
-  default_aliases="$agent_id:,/$agent_id"
-  if [[ "$index" -eq 1 ]]; then
-    default_aliases="family:,/family,$agent_id:,/$agent_id"
-  fi
-  prompt_text "Routing aliases" "$default_aliases" "Optional chat prefixes users can type to target this agent. Enter none for no aliases."
-  aliases_raw="$(lowercase "$(trim "$PROMPT_RESULT")")"
-  if [[ "$aliases_raw" == "none" ]]; then
-    aliases_csv=""
-  else
-    aliases_csv="$PROMPT_RESULT"
-  fi
-
   while true; do
     prompt_text "Atlas capabilities" "default" "These generate a Hermes native skill for Atlas custom data surfaces; they are not persona text. Use default, minimal, all, or comma-separated ids. Default: $(join_csv "${default_skills[@]}")"
     if parse_skills "$PROMPT_RESULT"; then
@@ -471,17 +439,14 @@ for index in $(seq 1 "$agent_count"); do
   agent_types+=("$agent_type")
   agent_profiles+=("$hermes_profile")
   agent_workspaces+=("$honcho_workspace")
-  agent_runtime_urls+=("$runtime_url")
   agent_members_csv+=("$members_csv")
   agent_owners_csv+=("$owners_csv")
-  agent_default_for_csv+=("$members_csv")
-  agent_aliases_csv+=("$aliases_csv")
   agent_skills_csv+=("$skills_csv")
 done
 
-section "4. WhatsApp routing"
-info "Only allowlisted WhatsApp numbers can talk to Hermes through the generated gateway config."
-info "The default agent is where that person's normal WhatsApp messages go unless they use an alias."
+section "4. WhatsApp identity metadata"
+info "Atlas writes per-profile Hermes allowlists from agent membership. Hermes owns actual WhatsApp gateway behavior."
+info "The default agent below is identity metadata for profile generation and future bridge context."
 
 user_default_agents=()
 for index in "${!user_ids[@]}"; do
@@ -563,11 +528,8 @@ YAML
     agent_type="${agent_types[$index]}"
     hermes_profile="${agent_profiles[$index]}"
     honcho_workspace="${agent_workspaces[$index]}"
-    runtime_url="${agent_runtime_urls[$index]}"
     members_csv="${agent_members_csv[$index]}"
     owners_csv="${agent_owners_csv[$index]}"
-    default_for_csv="${agent_default_for_csv[$index]}"
-    aliases_csv="${agent_aliases_csv[$index]}"
     skills_csv="${agent_skills_csv[$index]}"
 
     cat <<YAML
@@ -586,34 +548,6 @@ YAML
     members:
 YAML
     write_list_from_csv 6 "$members_csv"
-
-    cat <<'YAML'
-    routing:
-      defaultFor:
-YAML
-    write_list_from_csv 8 "$default_for_csv"
-
-    if [[ -n "$aliases_csv" ]]; then
-      cat <<'YAML'
-      aliases:
-YAML
-      write_list_from_csv 8 "$aliases_csv"
-    else
-      cat <<'YAML'
-      aliases: []
-YAML
-    fi
-
-    if [[ -n "$runtime_url" ]]; then
-      cat <<YAML
-    runtime:
-      url: $(yaml_quote "$runtime_url")
-YAML
-    else
-      cat <<'YAML'
-    runtime: {}
-YAML
-    fi
 
     cat <<'YAML'
     skills:

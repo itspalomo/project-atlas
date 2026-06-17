@@ -85,13 +85,13 @@ The installer is safe to rerun:
 - Honcho source is cloned only when missing. Existing source is reused unless `HONCHO_AUTO_UPDATE=true`.
 - Database migrations run once through `schema_migrations`.
 - Seeding converges access control to `ecosystem/atlas.yaml`: stale memberships are removed, stale configured-user WhatsApp identities are disabled, and removed users lose enabled channel access.
-- Hermes profile generation rewrites configured profiles and removes stale generated profile directories from the prior manifest.
+- Hermes profile generation converges Atlas-managed files while preserving Hermes-owned credentials, sessions, and profile state.
 
 ## Ecosystem Config
 
 The local ecosystem file controls identity metadata, agents, bridge scopes, and generated runtime config. Atlas writes Hermes WhatsApp gateway allowlists, native skill files, MCP config, and Honcho memory-provider config from this file. Hermes remains the runtime and handles model/provider auth, WhatsApp sender allowlists, native skills, MCP discovery, and native memory-provider integration.
 
-If `ecosystem/atlas.yaml` does not exist, the installer opens an onboarding questionnaire. It asks for an optional install label, allowed users, WhatsApp numbers, shared or personal agents, Hermes profile names, optional legacy Hermes endpoint overrides, Honcho memory workspaces, and enabled Atlas bridge capabilities. It does not ask for OpenAI or LLM provider keys; those stay with the Hermes/runtime auth provider.
+If `ecosystem/atlas.yaml` does not exist, the installer opens an onboarding questionnaire. It asks for an optional install label, allowed users, WhatsApp numbers, shared or personal agents, Hermes profile names, Honcho memory workspaces, and enabled Atlas bridge capabilities. It does not ask for OpenAI or LLM provider keys; those stay with the Hermes/runtime auth provider.
 
 ```yaml
 users:
@@ -109,12 +109,6 @@ agents:
     honchoWorkspace: household
     members:
       - parent-one
-    routing:
-      defaultFor:
-        - parent-one
-      aliases:
-        - "family:"
-        - "/family"
     # Atlas custom capability ids. These generate a Hermes native atlas-context skill.
     skills:
       - household
@@ -138,14 +132,15 @@ scripts/init-hermes-profiles.sh
 docker compose --profile runtime up -d --build hermes
 ```
 
-`scripts/init-hermes-profiles.sh` writes profile directories under `data/hermes/profiles/`. Each generated profile includes:
+`scripts/init-hermes-profiles.sh` writes profile directories under `data/hermes/profiles/`. Each configured agent becomes a Hermes profile. A typical family setup is three profiles: one personal profile for you, one personal profile for your spouse, and one shared family profile. Each generated profile includes:
 
 - `config.yaml` with `memory.provider: honcho` and `mcp_servers.atlas`.
+- `.env` with that profile's Atlas-managed Hermes WhatsApp allowlist block, preserving other Hermes-owned credentials.
 - `skills/atlas-context/SKILL.md` for Atlas custom bridge/data capabilities.
 - `atlas-capabilities.json` for deterministic Atlas metadata.
 - A profile-local `honcho.json` pointing at the self-hosted Honcho API.
 
-Compose mounts `data/hermes` at `/opt/data`, which is the Hermes data root in the container. Leave `ATLAS_RUNTIME_MODE=stub` unless you intentionally enable the legacy Atlas WhatsApp/chat proxy for local testing.
+Compose mounts `data/hermes` at `/opt/data`, which is the Hermes data root in the container. The default topology is one Hermes container supervising all profiles. Use separate Hermes containers only when you need hard isolation for resources, networks, image versions, or compliance boundaries.
 
 ## Honcho
 

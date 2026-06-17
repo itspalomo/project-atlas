@@ -112,7 +112,7 @@ export const builtInSkills: AtlasSkill[] = [
     category: "channel",
     summary: "Adapt responses for Hermes' WhatsApp gateway and generated allowlist model.",
     structuredFacts: ["Hermes gateway allowlists", "Atlas identity metadata", "audit logs"],
-    allowedActions: ["Reply to authorized senders through Hermes", "Use configured shared-agent aliases"],
+    allowedActions: ["Reply to authorized senders through Hermes", "Follow Hermes profile and channel conventions"],
     approvalRequired: ["Messaging another user proactively", "Sharing private facts in a group or shared context"]
   }
 ];

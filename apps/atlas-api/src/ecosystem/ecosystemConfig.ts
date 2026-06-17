@@ -18,19 +18,6 @@ const userSchema = z.object({
   identities: z.array(identitySchema).default([])
 });
 
-const routingSchema = z
-  .object({
-    defaultFor: z.array(z.string().min(1)).default([]),
-    aliases: z.array(z.string().min(1)).default([])
-  })
-  .default({ defaultFor: [], aliases: [] });
-
-const runtimeSchema = z
-  .object({
-    url: z.string().url().optional()
-  })
-  .default({});
-
 const agentSchema = z.object({
   id: z.string().min(1),
   displayName: z.string().min(1),
@@ -39,10 +26,7 @@ const agentSchema = z.object({
   honchoWorkspace: z.string().min(1).optional(),
   owners: z.array(z.string().min(1)).default([]),
   members: z.array(z.string().min(1)).default([]),
-  skills: z.array(z.string().min(1)).default([]),
-  routing: routingSchema,
-  runtime: runtimeSchema,
-  prompt: z.string().min(1).optional()
+  skills: z.array(z.string().min(1)).default([])
 });
 
 const ecosystemSchema = z.object({
@@ -70,11 +54,12 @@ export async function loadEcosystemConfig(configPath: string): Promise<Ecosystem
 
   const userIds = new Set(config.users.map((user) => user.id));
   const agentIds = new Set(config.agents.map((agent) => agent.id));
+  const agentsById = new Map(config.agents.map((agent) => [agent.id, agent]));
 
   for (const agent of config.agents) {
     validateSkillIds(agent.skills, `Agent ${agent.id}`);
 
-    for (const userId of [...agent.owners, ...agent.members, ...agent.routing.defaultFor]) {
+    for (const userId of [...agent.owners, ...agent.members]) {
       if (!userIds.has(userId)) {
         throw new Error(`Agent ${agent.id} references unknown user ${userId}`);
       }
@@ -85,6 +70,12 @@ export async function loadEcosystemConfig(configPath: string): Promise<Ecosystem
     for (const identity of user.identities) {
       if (identity.defaultAgent && !agentIds.has(identity.defaultAgent)) {
         throw new Error(`User ${user.id} identity references unknown default agent ${identity.defaultAgent}`);
+      }
+      if (identity.defaultAgent) {
+        const agent = agentsById.get(identity.defaultAgent);
+        if (agent && !agent.owners.includes(user.id) && !agent.members.includes(user.id)) {
+          throw new Error(`User ${user.id} identity default agent ${identity.defaultAgent} does not include that user as an owner or member`);
+        }
       }
     }
   }
@@ -129,23 +120,6 @@ export function agentHermesProfile(agent: EcosystemAgent): string {
 
 export function agentHonchoWorkspace(agent: EcosystemAgent): string {
   return agent.honchoWorkspace ?? agent.id;
-}
-
-export function agentPrompt(agent: EcosystemAgent): string {
-  const basePrompt = agent.prompt?.trimEnd() ?? [
-    "# Atlas Runtime Context",
-    "",
-    `Agent id: ${agent.id}`,
-    `Display name: ${agent.displayName}`,
-    `Agent type: ${agent.type}`,
-    "",
-    "Hermes is the reasoning runtime. Use Hermes-native messaging, memory providers, skills, MCP tools, model/provider auth, and profile behavior first.",
-    "Atlas supplies generated runtime config plus custom structured-data and iOS bridge surfaces when they are enabled for this profile.",
-    "If a user asks about Atlas-managed data that is missing, stale, or not shared through the iOS bridge, ask the user to connect or authorize the bridge data, or to provide the information in chat.",
-    "Writes to calendars, reminders, goals, training plans, and cross-user sharing require Atlas approvals and bridge execution."
-  ].join("\n");
-
-  return basePrompt.trimEnd();
 }
 
 function validateUnique(values: string[], label: string): void {

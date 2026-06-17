@@ -1,49 +1,34 @@
 import { describe, expect, it } from "vitest";
-import { agentPrompt, EcosystemAgent } from "./ecosystemConfig.js";
+import { agentHermesProfile, agentHonchoWorkspace, EcosystemAgent } from "./ecosystemConfig.js";
 
 describe("ecosystem config", () => {
-  it("keeps custom prompts separate from generated Hermes skills", () => {
+  it("defaults Hermes profile and Honcho workspace to the agent id", () => {
     const agent: EcosystemAgent = {
       id: "household",
       displayName: "Household Atlas",
       type: "shared",
       owners: ["user-one"],
       members: ["user-one"],
-      skills: ["calendar", "health"],
-      routing: {
-        defaultFor: ["user-one"],
-        aliases: ["/family"]
-      },
-      runtime: {},
-      prompt: "# Custom prompt"
+      skills: []
     };
 
-    const prompt = agentPrompt(agent);
-    expect(prompt).toContain("# Custom prompt");
-    expect(prompt).not.toContain("Atlas Data Capabilities");
-    expect(prompt).not.toContain("calendar: Use availability windows");
-    expect(prompt).not.toContain("health: Use summarized HealthKit-derived metrics");
+    expect(agentHermesProfile(agent)).toBe("household");
+    expect(agentHonchoWorkspace(agent)).toBe("household");
   });
 
-  it("uses a minimal non-persona default prompt", () => {
+  it("allows explicit Hermes profile and Honcho workspace names", () => {
     const agent: EcosystemAgent = {
-      id: "household",
-      displayName: "Household Atlas",
+      id: "family",
+      displayName: "Family",
       type: "shared",
+      hermesProfile: "family-profile",
+      honchoWorkspace: "shared-family",
       owners: ["user-one"],
-      members: ["user-one"],
-      skills: [],
-      routing: {
-        defaultFor: ["user-one"],
-        aliases: ["/family"]
-      },
-      runtime: {}
+      members: ["user-one", "user-two"],
+      skills: []
     };
 
-    const prompt = agentPrompt(agent);
-    expect(prompt).toContain("Hermes is the reasoning runtime");
-    expect(prompt).toContain("ask the user to connect or authorize the bridge data");
-    expect(prompt).toContain("Use Hermes-native messaging, memory providers, skills, MCP tools");
-    expect(prompt).not.toContain("You are");
+    expect(agentHermesProfile(agent)).toBe("family-profile");
+    expect(agentHonchoWorkspace(agent)).toBe("shared-family");
   });
 });
